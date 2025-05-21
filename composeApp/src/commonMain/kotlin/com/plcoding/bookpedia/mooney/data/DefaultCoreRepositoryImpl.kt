@@ -80,8 +80,24 @@ class DefaultCoreRepositoryImpl(
 
 
     override suspend fun deleteTransaction(id: Int) {
-        transactionDao.delete(id)
+        val transaction = transactionDao.getById(id)
+
+        if (transaction != null) {
+            val account = accountDao.getById(transaction.accountId)
+            val categoryType = getAllCategories().find { it.id == transaction.subcategoryId }?.getRoot()?.type
+
+            if (account != null && categoryType != null) {
+                val adjustedAmount = when (categoryType) {
+                    CategoryType.EXPENSE -> account.amount + transaction.amount
+                    CategoryType.INCOME -> account.amount - transaction.amount
+                }
+                accountDao.upsert(account.copy(amount = adjustedAmount))
+            }
+
+            transactionDao.delete(id)
+        }
     }
+
 
     override fun getAllTransactions(): Flow<List<Transaction?>> {
         val accountsFlow = getAllAccounts()

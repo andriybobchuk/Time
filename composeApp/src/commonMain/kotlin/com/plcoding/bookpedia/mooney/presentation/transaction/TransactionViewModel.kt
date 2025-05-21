@@ -61,6 +61,7 @@ class TransactionViewModel(
                     .sortedByDescending { it.date }
 
                 _uiState.update { it.copy(transactions = sorted) }
+                loadTotal()
             }
             .launchIn(viewModelScope)
     }
@@ -72,10 +73,13 @@ class TransactionViewModel(
 
     init {
         loadDataForBottomSheet()
+        //loadTotal()
     }
 
     private fun loadTotal() {
-        val totalPln = state.value.transactions.filterNotNull().filter { it.subcategory.type == CategoryType.EXPENSE }.sumOf { it.amount }
+        val totalPln = _uiState.value.transactions.filterNotNull().filter {
+            it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
+        }.sumOf { it.amount }
 
         val converted = if (selectedCurrency != GlobalConfig.baseCurrency) {
             GlobalConfig.testExchangeRates.convert(

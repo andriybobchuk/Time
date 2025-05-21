@@ -75,6 +75,20 @@ object CategoryDataSource {
         Category("transport_taxi", "Taxi", CategoryType.EXPENSE, parent = transport)
     )
 
+    val travelling = Category("travelling", "Travelling", CategoryType.EXPENSE, emoji = "\uD83C\uDFDD\uFE0F", parent = expense)
+    val travellingSub = listOf(
+        Category("accommodation", "Accommodation", CategoryType.EXPENSE, parent = transport),
+        Category("transport", "Local Transport", CategoryType.EXPENSE, parent = travelling),
+        Category("flights", "Flights", CategoryType.EXPENSE, parent = travelling),
+        Category("food_drinks", "Food & Drinks", CategoryType.EXPENSE, parent = travelling),
+        Category("restaurants", "Restaurants", CategoryType.EXPENSE, parent = travelling),
+        Category("groceries", "Groceries", CategoryType.EXPENSE, parent = travelling),
+        Category("activities", "Activities", CategoryType.EXPENSE, parent = travelling),
+        Category("tickets", "Attractions & Tickets", CategoryType.EXPENSE, parent = travelling),
+        Category("souvenirs", "Souvenirs", CategoryType.EXPENSE, parent = travelling),
+        Category("shopping", "Shopping", CategoryType.EXPENSE, parent = travelling),
+    )
+
     val barber = Category("barber", "Barber", CategoryType.EXPENSE, emoji = "💈", parent = expense)
 
     val clothing = Category("clothing", "Clothing", CategoryType.EXPENSE, emoji = "👕", parent = expense)
@@ -103,6 +117,7 @@ object CategoryDataSource {
     val positive_reconciliation = Category("positive_reconciliation", "Account Reconciliation", CategoryType.INCOME, emoji = "💸", parent = income)
     val tax_return = Category("tax_return", "Tax Return", CategoryType.INCOME, emoji = "💸", parent = income)
     val refund = Category("refund", "Refund", CategoryType.INCOME, emoji = "💸", parent = income)
+    val repayment = Category("repayment", "Repayment", CategoryType.INCOME, emoji = "💸", parent = income)
 
 
     // Final list
@@ -114,8 +129,8 @@ object CategoryDataSource {
                 joy, business, health, sport, gifts,
                 housing, tax, transport,
                 barber, clothing, reconciliation,
-                subscriptions, beverages,
-                salary, positive_reconciliation, tax_return, refund
+                subscriptions, beverages, travelling,
+                salary, positive_reconciliation, tax_return, refund, repayment
             )
         )
         addAll(joySub)
@@ -129,5 +144,6 @@ object CategoryDataSource {
         addAll(clothingSub)
         addAll(subscriptionsSub)
         addAll(beveragesSub)
+        addAll(travellingSub)
     }
 }
