@@ -64,7 +64,8 @@ object CategoryDataSource {
     val taxSub = listOf(
         Category("zus", "ZUS", CategoryType.EXPENSE, parent = tax),
         Category("pit", "PIT", CategoryType.EXPENSE, parent = tax),
-        Category("gov_fee", "Government Fee", CategoryType.EXPENSE, parent = tax)
+        Category("gov_fee", "Government Fee", CategoryType.EXPENSE, parent = tax),
+        Category("fine", "Fine", CategoryType.EXPENSE, parent = tax),
     )
 
     val transport = Category("transport", "Transportation", CategoryType.EXPENSE, emoji = "🚲", parent = expense)

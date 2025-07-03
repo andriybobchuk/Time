@@ -1,15 +1,9 @@
 package com.plcoding.bookpedia.app
 
 import AccountViewModel
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.fillMaxSize
+
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
@@ -20,13 +14,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.plcoding.bookpedia.book.presentation.SelectedBookViewModel
-import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailAction
-import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailScreenRoot
-import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailViewModel
-import com.plcoding.bookpedia.book.presentation.book_list.BookListScreenRoot
-import com.plcoding.bookpedia.book.presentation.book_list.BookListViewModel
+
+import com.plcoding.bookpedia.mooney.presentation.analytics.AnalyticsScreen
+import com.plcoding.bookpedia.mooney.presentation.analytics.AnalyticsViewModel
 import com.recallit.account.presentation.AccountScreen
 import com.recallit.app.navigation.BottomNavigationBar
 import com.recallit.transactions.presentation.TransactionViewModel
@@ -55,6 +45,14 @@ fun NavigationHost() {
                 AccountScreen(
                     viewModel = viewModel,
                     bottomNavbar = { BottomNavigationBar(navController, 1) }
+                )
+            }
+
+            composable<Route.Analytics> {
+                val viewModel = koinViewModel<AnalyticsViewModel>()
+                AnalyticsScreen(
+                    viewModel = viewModel,
+                    bottomNavbar = { BottomNavigationBar(navController, 2) }
                 )
             }
 //            composable<Route.BookList>(

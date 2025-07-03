@@ -19,7 +19,7 @@ fun BottomNavigationBar(navController: NavHostController, selectedItemIndex: Int
     val items = listOf(
         BottomNavigationItem("Transactions", Icons.TransactionsIcon()),
         BottomNavigationItem("Account", Icons.AccountsIcon()),
-      //  BottomNavigationItem("Stats", Icons.Default.Star),
+        BottomNavigationItem("Analytics", Icons.StatsIcon()),
     )
 
     NavigationBar(
@@ -33,7 +33,7 @@ fun BottomNavigationBar(navController: NavHostController, selectedItemIndex: Int
                         when (index) {
                             0 -> navController.navigate(Route.Transactions) { popUpTo(Route.MooneyGraph) }
                             1 -> navController.navigate(Route.Accounts) { popUpTo(Route.MooneyGraph) }
-                           // 2 -> navController.navigate(Route.Accounts) { popUpTo(Route.Transactions) }
+                            2 -> navController.navigate(Route.Analytics) { popUpTo(Route.MooneyGraph) }
                         }
                     }
                 },

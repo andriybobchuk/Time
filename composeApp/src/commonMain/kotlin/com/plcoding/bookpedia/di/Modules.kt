@@ -9,12 +9,12 @@ import com.plcoding.bookpedia.mooney.data.DefaultCoreRepositoryImpl
 import com.plcoding.bookpedia.book.domain.BookRepository
 import com.plcoding.bookpedia.book.presentation.SelectedBookViewModel
 import AccountViewModel
+import com.plcoding.bookpedia.mooney.presentation.analytics.AnalyticsViewModel
 import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailViewModel
 import com.plcoding.bookpedia.book.presentation.book_list.BookListViewModel
 import com.plcoding.bookpedia.core.data.HttpClientFactory
 import com.plcoding.bookpedia.mooney.domain.CoreRepository
 import com.recallit.core.data.database.AppDatabase
-import com.recallit.transactions.presentation.TransactionItem
 import com.recallit.transactions.presentation.TransactionViewModel
 
 import org.koin.core.module.Module
@@ -51,4 +51,5 @@ val sharedModule = module {
     viewModelOf(::SelectedBookViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::TransactionViewModel)
+    viewModelOf(::AnalyticsViewModel)
 }

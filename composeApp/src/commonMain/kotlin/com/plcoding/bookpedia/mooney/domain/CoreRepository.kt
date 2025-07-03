@@ -16,12 +16,6 @@ interface CoreRepository {
     fun getAllTransactions(): Flow<List<Transaction?>>
     suspend fun getTransactionById(id: Int): Transaction?
 
-//    fun getAllTransactions(): List<Transaction>
-//    fun getTransactionById(id: Int): Transaction?
-//    fun addTransaction(transaction: Transaction): Transaction
-//    fun updateTransaction(transaction: Transaction): Boolean
-//    fun deleteTransaction(id: Int): Boolean
-
     // Category
     fun getAllCategories(): List<Category>
     fun getCategoryById(id: String): Category?

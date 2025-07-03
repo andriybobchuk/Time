@@ -21,9 +21,6 @@ data class Category(
     // Sub Category
     fun isSubCategory(): Boolean = parent?.isGeneralCategory() ?: false
 
-//    @Deprecated("")
-//    fun getTopLevel(): Category = parent?.getTopLevel() ?: this
-
     fun getRoot(): Category = parent?.getRoot() ?: this
 
     fun resolveEmoji(): String = emoji ?: parent?.emoji ?: parent?.parent?.emoji ?: ""

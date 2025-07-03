@@ -13,6 +13,9 @@ sealed interface Route {
     @Serializable
     data object Transactions: Route
 
+    @Serializable
+    data object Analytics: Route
+
 
 
     @Serializable
