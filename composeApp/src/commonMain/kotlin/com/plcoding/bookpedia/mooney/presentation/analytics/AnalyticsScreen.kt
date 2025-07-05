@@ -1,12 +1,15 @@
 package com.plcoding.bookpedia.mooney.presentation.analytics
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +31,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.plcoding.bookpedia.core.presentation.Toolbars
+import com.plcoding.bookpedia.mooney.presentation.formatWithCommas
 import com.recallit.transactions.presentation.TransactionBottomSheet
 import com.recallit.transactions.presentation.TransactionsScreenContent
 import kotlinx.datetime.Clock
@@ -58,25 +66,63 @@ fun AnalyticsScreen(
         },
         bottomBar = { bottomNavbar() },
         content = { paddingValues ->
-            Column(modifier = Modifier.fillMaxSize()) {
-                Spacer(modifier = Modifier.height(16.dp))
+            Column(modifier = Modifier.padding(paddingValues).background(Color(0xFF3E4DBA))) {
 
-                MonthPicker(
-                    selectedMonth = state.selectedMonth,
-                    onMonthSelected = viewModel::onMonthSelected,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(state.metrics) { metric ->
-                        MetricCard(metric)
+                    val revenueMetric = state.metrics.find { it.title == "Revenue" }
+                    val TaxesMetric = state.metrics.find { it.title == "Taxes" }
+                    val CostsMetric = state.metrics.find { it.title == "Operating Costs" }
+                    val incomeMetric = state.metrics.find { it.title == "Net Income" }
+
+                    if (revenueMetric == null ||
+                        TaxesMetric == null ||
+                        CostsMetric == null ||
+                        incomeMetric == null) {
+                        return@Column
                     }
+
+                    Row {
+                        MetricCard(revenueMetric)
+                        MetricCard(TaxesMetric)
+                        MetricCard(CostsMetric)
+                    }
+                    MetricCard(incomeMetric)
+
                 }
+
+//                Spacer(modifier = Modifier.height(16.dp))
+//
+//
+//
+//                Spacer(modifier = Modifier.height(8.dp))
+//
+//
+//                LazyColumn(
+//                    modifier = Modifier.fillMaxSize()
+//                ) {
+//                    items(state.metrics) { metric ->
+//                        MetricCard(metric)
+//                    }
+//                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(Color.White),
+                ) {
+                    MonthPicker(
+                        selectedMonth = state.selectedMonth,
+                        onMonthSelected = viewModel::onMonthSelected,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
             }
         }
     )
@@ -121,8 +167,8 @@ fun MonthPicker(
 fun MetricCard(metric: AnalyticsMetric) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .fillMaxWidth()
+            .padding(horizontal = 2.dp, vertical = 2.dp)
+            .wrapContentWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
@@ -134,7 +180,7 @@ fun MetricCard(metric: AnalyticsMetric) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = metric.value,
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.labelLarge
         )
         metric.subtitle?.let {
             Spacer(modifier = Modifier.height(2.dp))
