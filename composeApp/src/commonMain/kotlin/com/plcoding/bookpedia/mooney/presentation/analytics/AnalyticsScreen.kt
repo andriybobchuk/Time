@@ -11,15 +11,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -61,54 +68,27 @@ fun AnalyticsScreen(
         topBar = {
             Toolbars.Primary(
                 title = "Analytics",
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                customContent = {
+                    MonthPicker(
+                        selectedMonth = state.selectedMonth,
+                        onMonthSelected = viewModel::onMonthSelected,
+                    )
+                }
             )
         },
         bottomBar = { bottomNavbar() },
         content = { paddingValues ->
             Column(modifier = Modifier.padding(paddingValues).background(Color(0xFF3E4DBA))) {
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    val revenueMetric = state.metrics.find { it.title == "Revenue" }
-                    val TaxesMetric = state.metrics.find { it.title == "Taxes" }
-                    val CostsMetric = state.metrics.find { it.title == "Operating Costs" }
-                    val incomeMetric = state.metrics.find { it.title == "Net Income" }
-
-                    if (revenueMetric == null ||
-                        TaxesMetric == null ||
-                        CostsMetric == null ||
-                        incomeMetric == null) {
-                        return@Column
+                    items(state.metrics) { metric ->
+                        MetricCard(metric)
                     }
-
-                    Row {
-                        MetricCard(revenueMetric)
-                        MetricCard(TaxesMetric)
-                        MetricCard(CostsMetric)
-                    }
-                    MetricCard(incomeMetric)
-
                 }
-
-//                Spacer(modifier = Modifier.height(16.dp))
-//
-//
-//
-//                Spacer(modifier = Modifier.height(8.dp))
-//
-//
-//                LazyColumn(
-//                    modifier = Modifier.fillMaxSize()
-//                ) {
-//                    items(state.metrics) { metric ->
-//                        MetricCard(metric)
-//                    }
-//                }
 
                 Column(
                     modifier = Modifier
@@ -119,7 +99,6 @@ fun AnalyticsScreen(
                     MonthPicker(
                         selectedMonth = state.selectedMonth,
                         onMonthSelected = viewModel::onMonthSelected,
-                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
@@ -135,16 +114,14 @@ fun AnalyticsScreen(
 fun MonthPicker(
     selectedMonth: MonthKey,
     onMonthSelected: (MonthKey) -> Unit,
-    modifier: Modifier = Modifier,
-    monthRange: List<MonthKey> = generateRecentMonths(4) // Last 12 months
+    monthRange: List<MonthKey> = generateRecentMonths(4)
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    OutlinedButton(
+    Button(
         onClick = { expanded = true },
-        modifier = modifier.fillMaxWidth()
     ) {
-        Text(selectedMonth.toDisplayString())
+       Text(color = Color.White, text = selectedMonth.toDisplayString())
     }
 
     DropdownMenu(
@@ -168,8 +145,8 @@ fun MetricCard(metric: AnalyticsMetric) {
     Column(
         modifier = Modifier
             .padding(horizontal = 2.dp, vertical = 2.dp)
-            .wrapContentWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .background(Color.White.copy(0.75f), RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Text(
@@ -180,7 +157,7 @@ fun MetricCard(metric: AnalyticsMetric) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = metric.value,
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.titleMedium
         )
         metric.subtitle?.let {
             Spacer(modifier = Modifier.height(2.dp))

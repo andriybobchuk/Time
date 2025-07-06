@@ -6,6 +6,7 @@ import com.plcoding.bookpedia.mooney.data.GlobalConfig
 import com.plcoding.bookpedia.mooney.domain.CategoryType
 import com.plcoding.bookpedia.mooney.domain.CoreRepository
 import com.plcoding.bookpedia.mooney.domain.Currency
+import com.plcoding.bookpedia.mooney.domain.ExchangeRates
 import com.plcoding.bookpedia.mooney.domain.Transaction
 import com.plcoding.bookpedia.mooney.presentation.formatWithCommas
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,7 @@ class AnalyticsViewModel(
 ) : ViewModel() {
     private val baseCurrency: Currency = GlobalConfig.baseCurrency
     private val calculators: List<AnalyticsMetricCalculator> = listOf(
-        RevenueCalculator(),
+        RevenueCalculator(GlobalConfig.testExchangeRates),
         TaxesCalculator(),
         OperatingCostsCalculator(),
         NetIncomeCalculator(),
@@ -130,24 +131,43 @@ data class MonthKey(val year: Int, val month: Int) {
     }
 }
 
-class RevenueCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
+class RevenueCalculator(
+    private val exchangeRates: ExchangeRates
+) : AnalyticsMetricCalculator {
+    override suspend fun calculate(
+        transactions: List<Transaction>,
+        month: MonthKey,
+        baseCurrency: Currency
+    ): AnalyticsMetric {
         val revenue = transactions
-            .filter { it.subcategory.type == CategoryType.INCOME }
-            .sumOf { it.amount }
+            .sumConverted(baseCurrency, exchangeRates) {
+                it.subcategory.type == CategoryType.INCOME
+            }
+
         return AnalyticsMetric("Revenue", format(revenue, baseCurrency))
     }
+}
+
+fun List<Transaction>.sumConverted(
+    baseCurrency: Currency,
+    exchangeRates: ExchangeRates,
+    filter: (Transaction) -> Boolean
+): Double {
+    return this
+        .asSequence()
+        .filter(filter)
+        .sumOf { exchangeRates.convert(it.amount, it.account.currency, baseCurrency) }
 }
 
 class TaxesCalculator : AnalyticsMetricCalculator {
     override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
         val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
-        val taxes = transactions.filter {
+        val taxes = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.title.contains("ZUS", ignoreCase = true) ||
                     it.subcategory.title.contains("PIT", ignoreCase = true)
-        }.sumOf { it.amount }
+        }
 
-        val subtitle = if (revenue > 0) "${percentage(taxes, revenue)} of revenue" else "–"
+        val subtitle = if (revenue > 0) "${percentage(taxes, revenue)}% of revenue" else "–"
         return AnalyticsMetric("Taxes", format(taxes, baseCurrency), subtitle)
     }
 }
@@ -155,13 +175,13 @@ class TaxesCalculator : AnalyticsMetricCalculator {
 class OperatingCostsCalculator : AnalyticsMetricCalculator {
     override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
         val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
-        val expenses = transactions.filter {
+        val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
                     !it.subcategory.title.contains("PIT")
-        }.sumOf { it.amount }
+        }
 
-        val subtitle = if (revenue > 0) "${percentage(expenses, revenue)} of revenue" else "–"
+        val subtitle = if (revenue > 0) "${percentage(expenses, revenue)}% of revenue" else "–"
         return AnalyticsMetric("Operating Costs", format(expenses, baseCurrency), subtitle)
     }
 }
@@ -172,14 +192,14 @@ class NetIncomeCalculator : AnalyticsMetricCalculator {
         val taxes = transactions.filter {
             it.subcategory.title.contains("ZUS") || it.subcategory.title.contains("PIT")
         }.sumOf { it.amount }
-        val expenses = transactions.filter {
+        val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
                     !it.subcategory.title.contains("PIT")
-        }.sumOf { it.amount }
+        }
 
         val netIncome = revenue - taxes - expenses
-        val subtitle = if (revenue > 0) "${percentage(netIncome, revenue)} of revenue" else "–"
+        val subtitle = if (revenue > 0) "${percentage(netIncome, revenue)}% revenue" else "–"
         return AnalyticsMetric("Net Income", format(netIncome, baseCurrency), subtitle)
     }
 }
@@ -187,15 +207,15 @@ class NetIncomeCalculator : AnalyticsMetricCalculator {
 class BurnRateCalculator : AnalyticsMetricCalculator {
     override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
         val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
-        val expenses = transactions.filter {
+        val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
                     !it.subcategory.title.contains("PIT")
-        }.sumOf { it.amount }
+        }
 
         val burnRate = if (expenses > 0) expenses / 30 else 0.0
         //val burnRate = if (expenses > 0) expenses / month.firstDay().lengthOfMonth() else 0.0 TODO
-        val subtitle = if (revenue > 0) "${percentage(burnRate, revenue)} of revenue per day" else "–"
+        val subtitle = if (revenue > 0) "${percentage(burnRate, revenue)}% revenue/day" else "–"
         return AnalyticsMetric("Burn Rate", format(burnRate, baseCurrency), subtitle)
     }
 }

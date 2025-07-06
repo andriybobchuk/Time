@@ -62,10 +62,14 @@ import com.plcoding.bookpedia.mooney.domain.Category
 import com.plcoding.bookpedia.mooney.domain.CategoryType
 import com.plcoding.bookpedia.mooney.domain.Currency
 import com.plcoding.bookpedia.mooney.domain.Transaction
+import com.plcoding.bookpedia.mooney.presentation.analytics.MonthPicker
 import com.plcoding.bookpedia.mooney.presentation.formatToPlainString
 import com.plcoding.bookpedia.mooney.presentation.formatWithCommas
 import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import toAccounts
 import kotlin.random.Random
@@ -92,7 +96,13 @@ fun TransactionsScreen(
         topBar = {
             Toolbars.Primary(
                 title = "Transactions",
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                customContent = {
+                    MonthPicker(
+                        selectedMonth = state.selectedMonth,
+                        onMonthSelected = viewModel::onMonthSelected,
+                    )
+                }
             )
         },
         bottomBar = { bottomNavbar() },
@@ -349,6 +359,12 @@ fun TransactionBottomSheet(
     var selectedSubCategory by remember { mutableStateOf(if(transactionToEdit?.subcategory?.isSubCategory() == true) transactionToEdit.subcategory else null)}
     var subCategoryFieldEnabled by remember { mutableStateOf(false) }
 
+
+    var selectedDate by remember {
+        mutableStateOf(transactionToEdit?.date ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+    }
+
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -393,6 +409,16 @@ fun TransactionBottomSheet(
             })
             SubCategoryField(selectedSubCategory, categories.filter { it.isSubCategory() && it.parent == selectedCategory }, subCategoryFieldEnabled, { selectedSubCategory = it })
 
+
+            Spacer(Modifier.height(8.dp))
+
+            DateSelector(
+                selectedDate = selectedDate,
+                onDateChange = { selectedDate = it }
+            )
+
+
+
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -405,7 +431,8 @@ fun TransactionBottomSheet(
                                 id = transactionToEdit?.id?: 0,
                                 amount = parsedAmount,
                                 account = selectedAccount!!,
-                                subcategory = selectedSubCategory?:selectedCategory!!
+                                subcategory = selectedSubCategory?:selectedCategory!!,
+                                date = selectedDate
                             )
                         )
                     } else if (parsedAmount != null  && selectedAccount != null && selectedCategory != null) {
@@ -414,7 +441,8 @@ fun TransactionBottomSheet(
                                 id = 0,
                                 amount = parsedAmount,
                                 account = selectedAccount!!,
-                                subcategory = selectedSubCategory?:selectedCategory!!
+                                subcategory = selectedSubCategory?:selectedCategory!!,
+                                date = selectedDate
                             )
                         )
                     }
@@ -425,6 +453,102 @@ fun TransactionBottomSheet(
         }
     }
 }
+
+@Composable
+fun DateSelector(
+    selectedDate: LocalDate,
+    onDateChange: (LocalDate) -> Unit
+) {
+    var showYearMenu by remember { mutableStateOf(false) }
+    var showMonthMenu by remember { mutableStateOf(false) }
+    var showDayMenu by remember { mutableStateOf(false) }
+
+    val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val years = (2000..currentDate.year).toList().reversed()
+    val months = (1..12).toList()
+
+    // Compute valid day count for the selected year/month
+    val daysInMonth = getDaysInMonth(selectedDate.year, selectedDate.monthNumber)
+    val days = (1..daysInMonth).toList()
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Year dropdown
+        Box {
+            OutlinedButton(onClick = { showYearMenu = true }) {
+                Text("${selectedDate.year}")
+            }
+            DropdownMenu(expanded = showYearMenu, onDismissRequest = { showYearMenu = false }) {
+                years.forEach { year ->
+                    DropdownMenuItem(
+                        text = { Text(year.toString()) },
+                        onClick = {
+                            val newDay = selectedDate.dayOfMonth.coerceAtMost(getDaysInMonth(year, selectedDate.monthNumber))
+                            onDateChange(LocalDate(year, selectedDate.monthNumber, newDay))
+                            showYearMenu = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // Month dropdown
+        Box {
+            OutlinedButton(onClick = { showMonthMenu = true }) {
+                Text(selectedDate.monthNumber.padZero())
+            }
+            DropdownMenu(expanded = showMonthMenu, onDismissRequest = { showMonthMenu = false }) {
+                months.forEach { month ->
+                    DropdownMenuItem(
+                        text = { Text(month.padZero()) },
+                        onClick = {
+                            val newDay = selectedDate.dayOfMonth.coerceAtMost(getDaysInMonth(selectedDate.year, month))
+                            onDateChange(LocalDate(selectedDate.year, month, newDay))
+                            showMonthMenu = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // Day dropdown
+        Box {
+            OutlinedButton(onClick = { showDayMenu = true }) {
+                Text(selectedDate.dayOfMonth.padZero())
+            }
+            DropdownMenu(expanded = showDayMenu, onDismissRequest = { showDayMenu = false }) {
+                days.forEach { day ->
+                    DropdownMenuItem(
+                        text = { Text(day.padZero()) },
+                        onClick = {
+                            onDateChange(LocalDate(selectedDate.year, selectedDate.monthNumber, day))
+                            showDayMenu = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+fun Int.padZero(): String = this.toString().padStart(2, '0')
+
+fun getDaysInMonth(year: Int, month: Int): Int {
+    return when (month) {
+        1, 3, 5, 7, 8, 10, 12 -> 31
+        4, 6, 9, 11 -> 30
+        2 -> if (isLeapYear(year)) 29 else 28
+        else -> 30 // fallback, should never hit
+    }
+}
+
+fun isLeapYear(year: Int): Boolean {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+
+
+
 
 @Composable
 private fun AccountField(

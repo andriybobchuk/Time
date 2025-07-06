@@ -10,6 +10,7 @@ import com.plcoding.bookpedia.mooney.domain.CoreRepository
 import com.plcoding.bookpedia.mooney.domain.Currency
 import com.plcoding.bookpedia.mooney.domain.Transaction
 import com.plcoding.bookpedia.mooney.domain.toEntity
+import com.plcoding.bookpedia.mooney.presentation.analytics.MonthKey
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +32,7 @@ import kotlinx.datetime.toLocalDateTime
 import toUiAccounts
 
 data class TransactionState(
+    val selectedMonth: MonthKey = MonthKey.current(),
     val transactions: List<Transaction?> = emptyList(),
     val accounts: List<UiAccount?> = emptyList(),
     val categories: List<Category> = emptyList(),
@@ -48,7 +50,7 @@ class TransactionViewModel(
     private val _uiState = MutableStateFlow(TransactionState())
     val state = _uiState
         .onStart {
-            observeTransactions()
+            observeTransactions(_uiState.value.selectedMonth)
         }
         .stateIn(
             viewModelScope,
@@ -56,25 +58,23 @@ class TransactionViewModel(
             _uiState.value
         )
 
-    private fun observeTransactions() {
+    fun onMonthSelected(month: MonthKey) {
+        _uiState.update { it.copy(selectedMonth = month) }
+        observeTransactions(month)
+    }
+    private fun observeTransactions(month: MonthKey) {
         observeTransactionsJob?.cancel()
 
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val startOfMonth = LocalDate(today.year, today.month, 1)
+        val start = month.firstDay()
+        val end = month.firstDayOfNextMonth()
 
-        val (nextMonthYear, nextMonth) = if (today.month == Month.DECEMBER) {
-            today.year + 1 to Month.JANUARY
-        } else {
-            today.year to Month.values()[today.month.ordinal + 1]
-        }
-        val startOfNextMonth = LocalDate(nextMonthYear, nextMonth, 1)
 
         observeTransactionsJob = repository
             .getAllTransactions()
             .filterNotNull()
             .map { transactions ->
                 transactions.filterNotNull().filter {
-                    it.date >= startOfMonth && it.date < startOfNextMonth
+                    it.date >= start && it.date < end
                 }
             }
             .onEach { filteredTransactions ->
@@ -146,7 +146,7 @@ class TransactionViewModel(
         viewModelScope.launch {
             repository.upsertTransaction(transaction)
             //loadTransactions()
-            observeTransactions()
+            observeTransactions(_uiState.value.selectedMonth)
             loadTotal()
         }
     }
@@ -155,7 +155,7 @@ class TransactionViewModel(
         viewModelScope.launch {
             repository.deleteTransaction(id)
            // loadTransactions()
-            observeTransactions()
+            observeTransactions(_uiState.value.selectedMonth)
             loadTotal()
         }
     }
