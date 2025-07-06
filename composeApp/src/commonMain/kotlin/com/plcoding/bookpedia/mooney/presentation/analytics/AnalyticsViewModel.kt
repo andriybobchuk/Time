@@ -3,6 +3,7 @@ package com.plcoding.bookpedia.mooney.presentation.analytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.plcoding.bookpedia.mooney.data.GlobalConfig
+import com.plcoding.bookpedia.mooney.domain.Category
 import com.plcoding.bookpedia.mooney.domain.CategoryType
 import com.plcoding.bookpedia.mooney.domain.CoreRepository
 import com.plcoding.bookpedia.mooney.domain.Currency
@@ -57,8 +58,54 @@ class AnalyticsViewModel(
 
             val metrics = calculators.map { it.calculate(transactions, month, baseCurrency) }
 
+
+            ////// CAtegories //////
+            //////////
+            val exchangeRates = GlobalConfig.testExchangeRates
+
+            val totalRevenue = transactions.sumConverted(baseCurrency, exchangeRates) {
+                it.subcategory.type == CategoryType.INCOME
+            }
+
+            val categorySums: Map<Category, Double> = transactions
+                .filter { it.subcategory.type == CategoryType.EXPENSE }
+                .map { tx ->
+
+                    val general = if (tx.subcategory.isGeneralCategory()) {
+                        tx.subcategory
+                    } else if (tx.subcategory.isTypeCategory()) {
+                        tx.subcategory
+                    } else {
+                        tx.subcategory.parent!!
+                    }
+
+
+                    //if (general != null) {
+                        val converted = exchangeRates.convert(tx.amount, tx.account.currency, baseCurrency)
+                        general to converted
+                  //  } else null
+                }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, amounts) -> amounts.sum() }
+
+            val topCategories = categorySums
+                .entries
+                .sortedByDescending { it.value }
+                .map { (category, totalAmount) ->
+                    TopCategorySummary(
+                        category = category,
+                        amount = totalAmount,
+                        formatted = format(totalAmount, baseCurrency),
+                        percentOfRevenue = percentage(totalAmount, totalRevenue)
+                    )
+                }
+
             _state.update {
-                it.copy(metrics = metrics, isLoading = false)
+                it.copy(
+                    metrics = metrics,
+                    topCategories = topCategories,
+                    isLoading = false
+                )
             }
         }
     }
@@ -88,10 +135,18 @@ interface AnalyticsMetricCalculator {
     ): AnalyticsMetric
 }
 
+data class TopCategorySummary(
+    val category: Category,
+    val amount: Double,
+    val formatted: String,
+    val percentOfRevenue: String
+)
+
 data class AnalyticsState(
     val selectedMonth: MonthKey = MonthKey.current(),
     val metrics: List<AnalyticsMetric> = emptyList(),
     //    val currency: Currency = GlobalConfig.baseCurrency,
+    val topCategories: List<TopCategorySummary> = emptyList(),
     val isLoading: Boolean = false
 )
 

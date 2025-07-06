@@ -2,6 +2,7 @@ package com.plcoding.bookpedia.mooney.presentation.analytics
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +50,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plcoding.bookpedia.core.presentation.Toolbars
+import com.plcoding.bookpedia.mooney.data.GlobalConfig
+import com.plcoding.bookpedia.mooney.domain.CategoryType
+import com.plcoding.bookpedia.mooney.domain.Transaction
 import com.plcoding.bookpedia.mooney.presentation.formatWithCommas
 import com.recallit.transactions.presentation.TransactionBottomSheet
 import com.recallit.transactions.presentation.TransactionsScreenContent
@@ -83,12 +90,15 @@ fun AnalyticsScreen(
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     items(state.metrics) { metric ->
                         MetricCard(metric)
                     }
                 }
+
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Column(
                     modifier = Modifier
@@ -96,16 +106,71 @@ fun AnalyticsScreen(
                         .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                         .background(Color.White),
                 ) {
-                    MonthPicker(
-                        selectedMonth = state.selectedMonth,
-                        onMonthSelected = viewModel::onMonthSelected,
-                    )
-                }
+                    Spacer(modifier = Modifier.height(10.dp))
 
+                    LazyColumn {
+                        items(state.topCategories) {
+                            CategoryItem(it)
+                        }
+                    }
+                }
             }
         }
     )
+}
 
+
+@Composable
+fun CategoryItem(topCategorySummary: TopCategorySummary) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF8F9FF)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(topCategorySummary.category.resolveEmoji(), fontSize = 25.sp)
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                topCategorySummary.category.title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            if (topCategorySummary.category.isSubCategory()) {
+                Text(
+                    topCategorySummary.category.parent?.title?:"???",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+                )
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                "${topCategorySummary.amount.formatWithCommas()} ${GlobalConfig.baseCurrency.symbol}",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = if (topCategorySummary.category.type == CategoryType.INCOME) Color(0xFF409261) else Color.DarkGray
+            )
+            Text(
+                topCategorySummary.percentOfRevenue + "% of revenue",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+            )
+//            if (transaction.exchangeRate != null) {
+//                Text(
+//                    "*${transaction.exchangeRate.formatWithCommas()} ${GlobalConfig.baseCurrency.symbol}",
+//                    style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+//                )
+//            }
+        }
+    }
 }
 
 
@@ -146,7 +211,7 @@ fun MetricCard(metric: AnalyticsMetric) {
         modifier = Modifier
             .padding(horizontal = 2.dp, vertical = 2.dp)
             .fillMaxWidth()
-            .background(Color.White.copy(0.75f), RoundedCornerShape(12.dp))
+            .background(Color.White, RoundedCornerShape(12.dp))
             .padding(16.dp)
     ) {
         Text(
