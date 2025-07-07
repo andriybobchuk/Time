@@ -160,7 +160,7 @@ fun CategoryItem(topCategorySummary: TopCategorySummary) {
                 color = if (topCategorySummary.category.type == CategoryType.INCOME) Color(0xFF409261) else Color.DarkGray
             )
             Text(
-                topCategorySummary.percentOfRevenue + "% of revenue",
+                topCategorySummary.percentOfRevenue + "%",
                 style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
             )
 //            if (transaction.exchangeRate != null) {

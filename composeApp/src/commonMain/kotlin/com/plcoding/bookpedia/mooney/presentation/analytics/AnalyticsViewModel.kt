@@ -20,6 +20,15 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+data class AnalyticsState(
+    val selectedMonth: MonthKey = MonthKey.current(),
+    val totalRevenuePlnForMonth: Double = 0.0,
+    val transactionsForMonth: List<Transaction?> = emptyList(),
+    val metrics: List<AnalyticsMetric> = emptyList(),
+    val topCategories: List<TopCategorySummary> = emptyList(),
+    val isLoading: Boolean = false
+)
+
 class AnalyticsViewModel(
     private val repository: CoreRepository,
 ) : ViewModel() {
@@ -36,11 +45,27 @@ class AnalyticsViewModel(
     val state: StateFlow<AnalyticsState> = _state
 
     init {
+       // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
         loadMetricsForMonth(_state.value.selectedMonth)
     }
 
+    // todo do not delete
+//    private fun calculateTotalRevenuePlnForMonth(month: MonthKey) {
+//
+//        val totalRevenuePln = _state.value.transactionsForMonth.filterNotNull().filter {
+//            it.subcategory.type == CategoryType.INCOME
+//        }.sumOf {
+//            GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, baseCurrency)
+//        }
+//
+//        _state.update {
+//            it.copy(totalRevenuePlnForMonth = totalRevenuePln)
+//        }
+//    }
+
     fun onMonthSelected(month: MonthKey) {
         _state.update { it.copy(selectedMonth = month) }
+       // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
         loadMetricsForMonth(month)
     }
 
@@ -50,21 +75,40 @@ class AnalyticsViewModel(
 
             val start = month.firstDay()
             val end = month.firstDayOfNextMonth()
+
+
             val transactions = repository
                 .getAllTransactions()
                 .first()
                 .filterNotNull()
                 .filter { it.date >= start && it.date < end }
+            _state.update { it.copy(transactionsForMonth = transactions) }
 
-            val metrics = calculators.map { it.calculate(transactions, month, baseCurrency) }
+            // todo: extract to function calculateTotalRevenuePlnForMonth
+            val totalRevenuePln = _state.value.transactionsForMonth.filterNotNull().filter {
+                it.subcategory.type == CategoryType.INCOME
+            }.sumOf {
+                GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, baseCurrency)
+            }
+            _state.update {
+                it.copy(totalRevenuePlnForMonth = totalRevenuePln)
+            }
+
+            val metrics = calculators.map { it.calculate(totalRevenuePln, transactions, month, baseCurrency) }
 
 
             ////// CAtegories //////
             //////////
             val exchangeRates = GlobalConfig.testExchangeRates
 
-            val totalRevenue = transactions.sumConverted(baseCurrency, exchangeRates) {
-                it.subcategory.type == CategoryType.INCOME
+//            val totalRevenue = transactions.sumConverted(baseCurrency, exchangeRates) {
+//                it.subcategory.type == CategoryType.INCOME
+//            }
+            val totalCostsPln = transactions.filter {
+                it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
+            }.sumOf {
+                //it.amount
+                GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, baseCurrency)
             }
 
             val categorySums: Map<Category, Double> = transactions
@@ -79,11 +123,8 @@ class AnalyticsViewModel(
                         tx.subcategory.parent!!
                     }
 
-
-                    //if (general != null) {
-                        val converted = exchangeRates.convert(tx.amount, tx.account.currency, baseCurrency)
-                        general to converted
-                  //  } else null
+                    val converted = exchangeRates.convert(tx.amount, tx.account.currency, baseCurrency)
+                    general to converted
                 }
                 .groupBy({ it.first }, { it.second })
                 .mapValues { (_, amounts) -> amounts.sum() }
@@ -96,7 +137,7 @@ class AnalyticsViewModel(
                         category = category,
                         amount = totalAmount,
                         formatted = format(totalAmount, baseCurrency),
-                        percentOfRevenue = percentage(totalAmount, totalRevenue)
+                        percentOfRevenue = percentage(totalAmount, totalCostsPln)
                     )
                 }
 
@@ -129,6 +170,7 @@ data class AnalyticsMetric(
 
 interface AnalyticsMetricCalculator {
     suspend fun calculate(
+        revenue: Double,
         transactions: List<Transaction>,
         month: MonthKey,
         baseCurrency: Currency
@@ -141,15 +183,6 @@ data class TopCategorySummary(
     val formatted: String,
     val percentOfRevenue: String
 )
-
-data class AnalyticsState(
-    val selectedMonth: MonthKey = MonthKey.current(),
-    val metrics: List<AnalyticsMetric> = emptyList(),
-    //    val currency: Currency = GlobalConfig.baseCurrency,
-    val topCategories: List<TopCategorySummary> = emptyList(),
-    val isLoading: Boolean = false
-)
-
 
 data class MonthKey(val year: Int, val month: Int) {
     fun toDisplayString(): String = "${monthName(month)} $year"
@@ -190,14 +223,18 @@ class RevenueCalculator(
     private val exchangeRates: ExchangeRates
 ) : AnalyticsMetricCalculator {
     override suspend fun calculate(
+        revenue: Double,
         transactions: List<Transaction>,
+
         month: MonthKey,
         baseCurrency: Currency
     ): AnalyticsMetric {
-        val revenue = transactions
-            .sumConverted(baseCurrency, exchangeRates) {
-                it.subcategory.type == CategoryType.INCOME
-            }
+//        val revenue = transactions
+//            .sumConverted(baseCurrency, exchangeRates) {
+//                it.subcategory.type == CategoryType.INCOME
+//            }
+//
+//        val revenue =
 
         return AnalyticsMetric("Revenue", format(revenue, baseCurrency))
     }
@@ -215,8 +252,19 @@ fun List<Transaction>.sumConverted(
 }
 
 class TaxesCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-        val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+    override suspend fun calculate(
+        revenue: Double,
+        transactions: List<Transaction>,
+        month: MonthKey,
+        baseCurrency: Currency
+    ): AnalyticsMetric {
+
+
+      //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+
+
+
+
         val taxes = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.title.contains("ZUS", ignoreCase = true) ||
                     it.subcategory.title.contains("PIT", ignoreCase = true)
@@ -228,8 +276,13 @@ class TaxesCalculator : AnalyticsMetricCalculator {
 }
 
 class OperatingCostsCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-        val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+    override suspend fun calculate(
+        revenue: Double,
+        transactions: List<Transaction>,
+        month: MonthKey,
+        baseCurrency: Currency
+    ): AnalyticsMetric {
+       // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
@@ -242,8 +295,10 @@ class OperatingCostsCalculator : AnalyticsMetricCalculator {
 }
 
 class NetIncomeCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-        val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+    override suspend fun calculate(
+        revenue: Double,
+        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
+       // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val taxes = transactions.filter {
             it.subcategory.title.contains("ZUS") || it.subcategory.title.contains("PIT")
         }.sumOf { it.amount }
@@ -260,8 +315,10 @@ class NetIncomeCalculator : AnalyticsMetricCalculator {
 }
 
 class BurnRateCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-        val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+    override suspend fun calculate(
+        revenue: Double,
+        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
+      //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
