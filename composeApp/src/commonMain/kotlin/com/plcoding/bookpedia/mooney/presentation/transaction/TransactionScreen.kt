@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.plcoding.bookpedia.core.presentation.Toolbars
@@ -212,19 +213,42 @@ fun TransactionsScreenContent(
             LazyColumn {
                 sortedGroups.forEach { (date, txList) ->
                     stickyHeader {
-                        Text(
-                            text = date.formatForDisplay(),
+                        Row(
                             modifier = Modifier
-                                .padding(vertical = 6.dp, horizontal = 16.dp)
-                                .background(
-                                    color = Color.White.copy(.9f),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(vertical = 4.dp, horizontal = 12.dp),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = Color.DarkGray
-                        )
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp, horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = date.formatForDisplay(),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        color = Color.White.copy(.9f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(vertical = 4.dp, horizontal = 12.dp),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = Color.DarkGray,
+                                textAlign = TextAlign.Start
+                            )
+                            Text(
+                                text = date.formatForDisplay(),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        color = Color.White.copy(.9f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(vertical = 4.dp, horizontal = 12.dp),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = Color.DarkGray,
+                                textAlign = TextAlign.End
+                            )
+                        }
+
                     }
 
                     items(txList) { tx ->
