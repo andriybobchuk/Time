@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -215,14 +216,15 @@ fun TransactionsScreenContent(
                     stickyHeader {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
+                                //.fillMaxWidth()
+                                .wrapContentWidth()
                                 .padding(vertical = 6.dp, horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = date.formatForDisplay(),
                                 modifier = Modifier
-                                    .weight(1f)
+                                  //  .weight(1f)
                                     .background(
                                         color = Color.White.copy(.9f),
                                         shape = RoundedCornerShape(12.dp)
@@ -233,20 +235,20 @@ fun TransactionsScreenContent(
                                 color = Color.DarkGray,
                                 textAlign = TextAlign.Start
                             )
-                            Text(
-                                text = date.formatForDisplay(),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .background(
-                                        color = Color.White.copy(.9f),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .padding(vertical = 4.dp, horizontal = 12.dp),
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                color = Color.DarkGray,
-                                textAlign = TextAlign.End
-                            )
+//                            Text(
+//                                text = date.formatForDisplay(),
+//                                modifier = Modifier
+//                                    .weight(1f)
+//                                    .background(
+//                                        color = Color.White.copy(.9f),
+//                                        shape = RoundedCornerShape(12.dp)
+//                                    )
+//                                    .padding(vertical = 4.dp, horizontal = 12.dp),
+//                                fontWeight = FontWeight.SemiBold,
+//                                fontSize = 14.sp,
+//                                color = Color.DarkGray,
+//                                textAlign = TextAlign.End
+//                            )
                         }
 
                     }

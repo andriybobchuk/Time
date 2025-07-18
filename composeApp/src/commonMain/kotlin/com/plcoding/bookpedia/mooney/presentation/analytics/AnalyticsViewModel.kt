@@ -38,7 +38,7 @@ class AnalyticsViewModel(
         TaxesCalculator(),
         OperatingCostsCalculator(),
         NetIncomeCalculator(),
-        BurnRateCalculator()
+        //BurnRateCalculator()
     )
 
     private val _state = MutableStateFlow(AnalyticsState())

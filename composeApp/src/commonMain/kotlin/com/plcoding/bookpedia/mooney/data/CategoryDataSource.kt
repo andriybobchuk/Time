@@ -22,11 +22,12 @@ object CategoryDataSource {
 
     val business = Category("business", "Business Expense", CategoryType.EXPENSE, emoji = "👨‍💻", parent = expense)
     val businessSub = listOf(
-        Category("business_equipment", "Equipment", CategoryType.EXPENSE, parent = business),
+        Category("business_equipment", "Tech/Equipment", CategoryType.EXPENSE, parent = business),
         Category("business_courses", "Courses", CategoryType.EXPENSE, parent = business),
-        Category("business_meetups", "Meetups", CategoryType.EXPENSE, parent = business),
+        Category("business_meetups", "Networking/Meetups", CategoryType.EXPENSE, parent = business),
         Category("business_communities", "Paid Communities", CategoryType.EXPENSE, parent = business),
-        Category("business_linkedin", "LinkedIn", CategoryType.EXPENSE, parent = business)
+        Category("business_linkedin", "LinkedIn", CategoryType.EXPENSE, parent = business),
+        Category("software", "Software Tools", CategoryType.EXPENSE, parent = business),
     )
 
     val health = Category("health", "Health", CategoryType.EXPENSE, emoji = "❤️", parent = expense)

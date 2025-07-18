@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -173,8 +174,6 @@ fun CategoryItem(topCategorySummary: TopCategorySummary) {
     }
 }
 
-
-
 @Composable
 fun MonthPicker(
     selectedMonth: MonthKey,
@@ -185,8 +184,14 @@ fun MonthPicker(
 
     Button(
         onClick = { expanded = true },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = Color.White
+        ),
+        contentPadding = PaddingValues(0.dp),
+        elevation = null
     ) {
-       Text(color = Color.White, text = selectedMonth.toDisplayString())
+        Text(text = selectedMonth.toDisplayString())
     }
 
     DropdownMenu(

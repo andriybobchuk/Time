@@ -98,7 +98,10 @@ class TransactionViewModel(
     private fun loadTotal() {
         val totalPln = _uiState.value.transactions.filterNotNull().filter {
             it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
-        }.sumOf { it.amount }
+        }.sumOf {
+           // it.amount
+            GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, GlobalConfig.baseCurrency)
+        }
 
         val converted = if (selectedCurrency != GlobalConfig.baseCurrency) {
             GlobalConfig.testExchangeRates.convert(
