@@ -27,6 +27,7 @@ class AccountViewModel(
     private var observeAccountsJob: Job? = null
 
     private val _uiState = MutableStateFlow(AccountState())
+
     //val state: StateFlow<AccountState> = _uiState
     val state = _uiState
         .onStart {
@@ -43,9 +44,11 @@ class AccountViewModel(
         observeAccountsJob = repository
             .getAllAccounts()
             .onEach { accounts ->
-                _uiState.update { it.copy(
-                    accounts = accounts.toUiAccounts(GlobalConfig.testExchangeRates)
-                ) }
+                _uiState.update {
+                    it.copy(
+                        accounts = accounts.toUiAccounts(GlobalConfig.testExchangeRates)
+                    )
+                }
                 loadAccountsAndWorth()
             }
             .launchIn(viewModelScope)
@@ -126,7 +129,7 @@ class AccountViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.deleteAccount(id)
-               // loadAccountsAndWorth()
+                // loadAccountsAndWorth()
             } catch (e: Exception) {
             }
         }
@@ -170,8 +173,8 @@ fun List<Account?>.toUiAccounts(
             )
         } else {
             account?.let {
-            val rate = rates.convert(1.0, account.currency, GlobalConfig.baseCurrency)
-            val converted = rates.convert(account.amount, account.currency, GlobalConfig.baseCurrency)
+                val rate = rates.convert(1.0, account.currency, GlobalConfig.baseCurrency)
+                val converted = rates.convert(account.amount, account.currency, GlobalConfig.baseCurrency)
                 UiAccount(
                     id = account.id,
                     title = account.title,

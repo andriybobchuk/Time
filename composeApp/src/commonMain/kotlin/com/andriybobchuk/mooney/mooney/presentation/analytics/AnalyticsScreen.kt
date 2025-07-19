@@ -135,7 +135,7 @@ fun CategoryItem(topCategorySummary: TopCategorySummary) {
             )
             if (topCategorySummary.category.isSubCategory()) {
                 Text(
-                    topCategorySummary.category.parent?.title?:"???",
+                    topCategorySummary.category.parent?.title ?: "???",
                     style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                 )
             }

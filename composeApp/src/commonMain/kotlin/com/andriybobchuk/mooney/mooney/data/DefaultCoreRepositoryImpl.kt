@@ -137,7 +137,6 @@ class DefaultCoreRepositoryImpl(
     }
 
 
-
 //    private val transactions: MutableList<Transaction> = TransactionDataSource.transactions
 //
 //    override fun getAllTransactions(): List<Transaction> = transactions
@@ -164,7 +163,6 @@ class DefaultCoreRepositoryImpl(
 //    override fun deleteTransaction(id: Int): Boolean {
 //        return transactions.removeAll { it.id == id }
 //    }
-
 
 
     ///////////////////////////// CATEGORIES - DO NOT MODIFY //////////////////////

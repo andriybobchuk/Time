@@ -35,6 +35,7 @@ data class TransactionState(
     val isLoading: Boolean = false,
     val isError: Boolean = false
 )
+
 class TransactionViewModel(
     private val repository: CoreRepository
 ) : ViewModel() {
@@ -56,6 +57,7 @@ class TransactionViewModel(
         _uiState.update { it.copy(selectedMonth = month) }
         observeTransactions(month)
     }
+
     private fun observeTransactions(month: MonthKey) {
         observeTransactionsJob?.cancel()
 
@@ -93,7 +95,7 @@ class TransactionViewModel(
         val totalPln = _uiState.value.transactions.filterNotNull().filter {
             it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
         }.sumOf {
-           // it.amount
+            // it.amount
             GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, GlobalConfig.baseCurrency)
         }
 
@@ -151,7 +153,7 @@ class TransactionViewModel(
     fun deleteTransaction(id: Int) {
         viewModelScope.launch {
             repository.deleteTransaction(id)
-           // loadTransactions()
+            // loadTransactions()
             observeTransactions(_uiState.value.selectedMonth)
             loadTotal()
         }

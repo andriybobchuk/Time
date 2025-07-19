@@ -105,7 +105,7 @@ fun NavigationHost() {
 }
 
 @Composable
-private inline fun <reified T: ViewModel> NavBackStackEntry.sharedKoinViewModel(
+private inline fun <reified T : ViewModel> NavBackStackEntry.sharedKoinViewModel(
     navController: NavController
 ): T {
     val navGraphRoute = destination.parent?.route ?: return koinViewModel<T>()

@@ -34,7 +34,8 @@ object Toolbars {
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold
-                )},
+                )
+            },
             modifier = modifier,
             scrollBehavior = scrollBehavior,
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(

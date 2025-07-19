@@ -45,7 +45,7 @@ class AnalyticsViewModel(
     val state: StateFlow<AnalyticsState> = _state
 
     init {
-       // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
+        // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
         loadMetricsForMonth(_state.value.selectedMonth)
     }
 
@@ -65,7 +65,7 @@ class AnalyticsViewModel(
 
     fun onMonthSelected(month: MonthKey) {
         _state.update { it.copy(selectedMonth = month) }
-       // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
+        // calculateTotalRevenuePlnForMonth(_state.value.selectedMonth)
         loadMetricsForMonth(month)
     }
 
@@ -153,10 +153,8 @@ class AnalyticsViewModel(
 }
 
 
-
 fun format(amount: Double, currency: Currency): String =
     "${amount.formatWithCommas()} ${currency.symbol}"
-
 
 
 fun percentage(part: Double, total: Double): String =
@@ -260,9 +258,7 @@ class TaxesCalculator : AnalyticsMetricCalculator {
     ): AnalyticsMetric {
 
 
-      //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
-
-
+        //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
 
 
         val taxes = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
@@ -282,7 +278,7 @@ class OperatingCostsCalculator : AnalyticsMetricCalculator {
         month: MonthKey,
         baseCurrency: Currency
     ): AnalyticsMetric {
-       // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+        // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&
@@ -297,8 +293,9 @@ class OperatingCostsCalculator : AnalyticsMetricCalculator {
 class NetIncomeCalculator : AnalyticsMetricCalculator {
     override suspend fun calculate(
         revenue: Double,
-        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-       // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency
+    ): AnalyticsMetric {
+        // val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val taxes = transactions.filter {
             it.subcategory.title.contains("ZUS") || it.subcategory.title.contains("PIT")
         }.sumOf { it.amount }
@@ -317,8 +314,9 @@ class NetIncomeCalculator : AnalyticsMetricCalculator {
 class BurnRateCalculator : AnalyticsMetricCalculator {
     override suspend fun calculate(
         revenue: Double,
-        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency): AnalyticsMetric {
-      //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
+        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency
+    ): AnalyticsMetric {
+        //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
         val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
             it.subcategory.type == CategoryType.EXPENSE &&
                     !it.subcategory.title.contains("ZUS") &&

@@ -116,7 +116,8 @@ object CategoryDataSource {
 
     // Income
     val salary = Category("salary", "Salary", CategoryType.INCOME, emoji = "💸", parent = income)
-    val positive_reconciliation = Category("positive_reconciliation", "Account Reconciliation", CategoryType.INCOME, emoji = "💸", parent = income)
+    val positive_reconciliation =
+        Category("positive_reconciliation", "Account Reconciliation", CategoryType.INCOME, emoji = "💸", parent = income)
     val tax_return = Category("tax_return", "Tax Return", CategoryType.INCOME, emoji = "💸", parent = income)
     val refund = Category("refund", "Refund", CategoryType.INCOME, emoji = "💸", parent = income)
     val repayment = Category("repayment", "Repayment", CategoryType.INCOME, emoji = "💸", parent = income)

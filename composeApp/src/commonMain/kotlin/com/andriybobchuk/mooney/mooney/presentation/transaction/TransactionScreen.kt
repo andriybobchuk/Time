@@ -222,7 +222,7 @@ fun TransactionsScreenContent(
                             Text(
                                 text = date.formatForDisplay(),
                                 modifier = Modifier
-                                  //  .weight(1f)
+                                    //  .weight(1f)
                                     .background(
                                         color = Color.White.copy(.9f),
                                         shape = RoundedCornerShape(12.dp)
@@ -254,7 +254,8 @@ fun TransactionsScreenContent(
                     items(txList) { tx ->
                         var expanded by remember { mutableStateOf(false) }
 
-                        Box(modifier = Modifier.combinedClickable(
+                        Box(
+                            modifier = Modifier.combinedClickable(
                             onClick = { onEdit(tx) },
                             onLongClick = { expanded = true }
                         )) {
@@ -314,7 +315,7 @@ fun TransactionItem(transaction: Transaction) {
             )
             if (transaction.subcategory.isSubCategory()) {
                 Text(
-                    transaction.subcategory.parent?.title?:"???",
+                    transaction.subcategory.parent?.title ?: "???",
                     style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                 )
             }
@@ -356,7 +357,7 @@ fun TransactionBottomSheet(
     var amount by remember { mutableStateOf(transactionToEdit?.amount?.formatWithCommas()) }
 
     val defaultAccount = accounts.filterNotNull().toAccounts().find { it.title.contains("Primary") }
-    var selectedAccount by remember { mutableStateOf(transactionToEdit?.account?:defaultAccount) }
+    var selectedAccount by remember { mutableStateOf(transactionToEdit?.account ?: defaultAccount) }
 
     val defaultCategoryType: Category? = categories.find { it.isTypeCategory() && it.type == CategoryType.EXPENSE }
     val categoryType: Category? = if (isEditMode) {
@@ -380,7 +381,7 @@ fun TransactionBottomSheet(
 
 
     var selectedCategory by remember { mutableStateOf(category) }
-    var selectedSubCategory by remember { mutableStateOf(if(transactionToEdit?.subcategory?.isSubCategory() == true) transactionToEdit.subcategory else null)}
+    var selectedSubCategory by remember { mutableStateOf(if (transactionToEdit?.subcategory?.isSubCategory() == true) transactionToEdit.subcategory else null) }
     var subCategoryFieldEnabled by remember { mutableStateOf(false) }
 
 
@@ -412,7 +413,7 @@ fun TransactionBottomSheet(
             )
 
             OutlinedTextField(
-                value = amount?: "",
+                value = amount ?: "",
                 onValueChange = { amount = it },
                 label = { Text("Amount") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -426,12 +427,19 @@ fun TransactionBottomSheet(
                 selectedCategoryType = it
                 selectedCategory = null
             })
-            CategoryField(selectedCategory, categories.filter { it.isGeneralCategory() && it.getRoot() == selectedCategoryType?.getRoot()}, {
-                selectedCategory = it
-                selectedSubCategory = null
-                subCategoryFieldEnabled = categories.filter { it.isSubCategory() && it.parent == selectedCategory}.isNotEmpty()
-            })
-            SubCategoryField(selectedSubCategory, categories.filter { it.isSubCategory() && it.parent == selectedCategory }, subCategoryFieldEnabled, { selectedSubCategory = it })
+            CategoryField(
+                selectedCategory,
+                categories.filter { it.isGeneralCategory() && it.getRoot() == selectedCategoryType?.getRoot() },
+                {
+                    selectedCategory = it
+                    selectedSubCategory = null
+                    subCategoryFieldEnabled = categories.filter { it.isSubCategory() && it.parent == selectedCategory }.isNotEmpty()
+                })
+            SubCategoryField(
+                selectedSubCategory,
+                categories.filter { it.isSubCategory() && it.parent == selectedCategory },
+                subCategoryFieldEnabled,
+                { selectedSubCategory = it })
 
 
             Spacer(Modifier.height(8.dp))
@@ -452,20 +460,20 @@ fun TransactionBottomSheet(
                     if (parsedAmount != null && selectedAccount != null && selectedCategory != null) {
                         onAdd(
                             Transaction(
-                                id = transactionToEdit?.id?: 0,
+                                id = transactionToEdit?.id ?: 0,
                                 amount = parsedAmount,
                                 account = selectedAccount!!,
-                                subcategory = selectedSubCategory?:selectedCategory!!,
+                                subcategory = selectedSubCategory ?: selectedCategory!!,
                                 date = selectedDate
                             )
                         )
-                    } else if (parsedAmount != null  && selectedAccount != null && selectedCategory != null) {
+                    } else if (parsedAmount != null && selectedAccount != null && selectedCategory != null) {
                         onUpdate(
                             Transaction(
                                 id = 0,
                                 amount = parsedAmount,
                                 account = selectedAccount!!,
-                                subcategory = selectedSubCategory?:selectedCategory!!,
+                                subcategory = selectedSubCategory ?: selectedCategory!!,
                                 date = selectedDate
                             )
                         )
@@ -571,9 +579,6 @@ fun isLeapYear(year: Int): Boolean {
 }
 
 
-
-
-
 @Composable
 private fun AccountField(
     initialSelectedAccount: Account?,
@@ -616,7 +621,7 @@ private fun CategoryTypeField(
         onClick = { optionsExpanded = true },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(initialSelectedCategoryType?.title?:"")
+        Text(initialSelectedCategoryType?.title ?: "")
     }
 
     DropdownMenu(
@@ -661,7 +666,7 @@ private fun CategoryField(
                     } else {
                         Text("Category (*)")
                     }
-                       },
+                },
                 onClick = {
                     onSelected(it)
                     optionsExpanded = false
@@ -684,7 +689,7 @@ private fun SubCategoryField(
         modifier = Modifier.fillMaxWidth(),
         enabled = enabled
     ) {
-        Text("${initialSelectedSubCategory?.resolveEmoji()?:""} ${initialSelectedSubCategory?.title?:"Subcategory (Optional)"}")
+        Text("${initialSelectedSubCategory?.resolveEmoji() ?: ""} ${initialSelectedSubCategory?.title ?: "Subcategory (Optional)"}")
     }
 
     DropdownMenu(

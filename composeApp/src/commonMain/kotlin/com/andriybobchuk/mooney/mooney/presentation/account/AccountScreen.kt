@@ -115,14 +115,15 @@ fun AccountScreen(
                 ModalBottomSheet(
                     onDismissRequest = {
                         showSheet = false
-                        editingAccount = null },
+                        editingAccount = null
+                    },
                     sheetState = sheetState,
                     containerColor = Color(0xFFF8F9FF)
                 ) {
                     AccountSheet(
                         editingAccount = editingAccount,
                         onAdd = { title, emoji, amount, currency ->
-                            viewModel.upsertAccount(editingAccount?.id?:0, title, emoji, amount, currency)
+                            viewModel.upsertAccount(editingAccount?.id ?: 0, title, emoji, amount, currency)
                             scope.launch { sheetState.hide(); showSheet = false }
                         }
                     )
@@ -307,10 +308,10 @@ private fun AccountSheet(
     editingAccount: UiAccount? = null,
     onAdd: (String, String, Double, Currency) -> Unit
 ) {
-    var title by remember { mutableStateOf(editingAccount?.title?:"") }
-    var emoji by remember { mutableStateOf(editingAccount?.emoji?:"💰") }
-    var amount by remember { mutableStateOf(editingAccount?.originalAmount?.formatWithCommas()?:"") }
-    var selectedCurrency by remember { mutableStateOf(editingAccount?.originalCurrency?:GlobalConfig.baseCurrency) }
+    var title by remember { mutableStateOf(editingAccount?.title ?: "") }
+    var emoji by remember { mutableStateOf(editingAccount?.emoji ?: "💰") }
+    var amount by remember { mutableStateOf(editingAccount?.originalAmount?.formatWithCommas() ?: "") }
+    var selectedCurrency by remember { mutableStateOf(editingAccount?.originalCurrency ?: GlobalConfig.baseCurrency) }
 
     val currencies = Currency.entries.toList()
 
