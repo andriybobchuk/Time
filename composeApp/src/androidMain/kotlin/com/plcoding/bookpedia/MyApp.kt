@@ -4,12 +4,12 @@ import android.app.Application
 import com.plcoding.bookpedia.di.initKoin
 import org.koin.android.ext.koin.androidContext
 
-class BookApplication: Application() {
+class MyApp: Application() {
 
     override fun onCreate() {
         super.onCreate()
         initKoin {
-            androidContext(this@BookApplication)
+            androidContext(this@MyApp)
         }
     }
 }

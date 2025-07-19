@@ -1,17 +1,9 @@
 package com.plcoding.bookpedia.di
 
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.plcoding.bookpedia.book.data.database.FavoriteBookDatabase
-import com.plcoding.bookpedia.book.data.network.KtorRemoteBookDataSource
-import com.plcoding.bookpedia.book.data.network.RemoteBookDataSource
-import com.plcoding.bookpedia.book.data.repository.DefaultBookRepository
 import com.plcoding.bookpedia.mooney.data.DefaultCoreRepositoryImpl
-import com.plcoding.bookpedia.book.domain.BookRepository
-import com.plcoding.bookpedia.book.presentation.SelectedBookViewModel
 import AccountViewModel
 import com.plcoding.bookpedia.mooney.presentation.analytics.AnalyticsViewModel
-import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailViewModel
-import com.plcoding.bookpedia.book.presentation.book_list.BookListViewModel
 import com.plcoding.bookpedia.core.data.HttpClientFactory
 import com.plcoding.bookpedia.mooney.domain.CoreRepository
 import com.recallit.core.data.database.AppDatabase
@@ -27,16 +19,8 @@ expect val platformModule: Module
 
 val sharedModule = module {
     single { HttpClientFactory.create(get()) }
-    singleOf(::KtorRemoteBookDataSource).bind<RemoteBookDataSource>()
-    singleOf(::DefaultBookRepository).bind<BookRepository>()
-    singleOf(::DefaultCoreRepositoryImpl).bind<CoreRepository>()
 
-    single {
-        get<com.plcoding.bookpedia.book.data.database.DatabaseFactory>().create()
-            .setDriver(BundledSQLiteDriver())
-            .build()
-    }
-    single { get<FavoriteBookDatabase>().favoriteBookDao }
+    singleOf(::DefaultCoreRepositoryImpl).bind<CoreRepository>()
 
     single {
         get<com.recallit.core.data.database.MooneyDatabaseFactory>().create()
@@ -46,9 +30,6 @@ val sharedModule = module {
     single { get<AppDatabase>().accountDao }
     single { get<AppDatabase>().transactionDao }
 
-    viewModelOf(::BookListViewModel)
-    viewModelOf(::BookDetailViewModel)
-    viewModelOf(::SelectedBookViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::TransactionViewModel)
     viewModelOf(::AnalyticsViewModel)
