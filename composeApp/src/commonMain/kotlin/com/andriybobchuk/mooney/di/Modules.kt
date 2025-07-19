@@ -6,6 +6,8 @@ import com.andriybobchuk.mooney.core.data.database.AppDatabase
 import com.andriybobchuk.mooney.core.data.database.MooneyDatabaseFactory
 import com.andriybobchuk.mooney.mooney.data.DefaultCoreRepositoryImpl
 import com.andriybobchuk.mooney.mooney.domain.CoreRepository
+
+import com.andriybobchuk.mooney.mooney.domain.usecase.*
 import com.andriybobchuk.mooney.mooney.presentation.account.AccountViewModel
 import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsViewModel
 import com.andriybobchuk.mooney.mooney.presentation.transaction.TransactionViewModel
@@ -29,6 +31,15 @@ val sharedModule = module {
     }
     single { get<AppDatabase>().accountDao }
     single { get<AppDatabase>().transactionDao }
+
+    // Use Cases
+    singleOf(::AddTransactionUseCase)
+    singleOf(::DeleteTransactionUseCase)
+    singleOf(::GetTransactionsUseCase)
+    singleOf(::AddAccountUseCase)
+    singleOf(::DeleteAccountUseCase)
+    singleOf(::GetAccountsUseCase)
+    singleOf(::CalculateMonthlyAnalyticsUseCase)
 
     viewModelOf(::AccountViewModel)
     viewModelOf(::TransactionViewModel)

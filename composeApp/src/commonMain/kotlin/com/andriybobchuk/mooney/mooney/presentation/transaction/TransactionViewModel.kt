@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.andriybobchuk.mooney.mooney.data.GlobalConfig
 import com.andriybobchuk.mooney.mooney.domain.Category
 import com.andriybobchuk.mooney.mooney.domain.CategoryType
-import com.andriybobchuk.mooney.mooney.domain.CoreRepository
+
 import com.andriybobchuk.mooney.mooney.domain.Currency
 import com.andriybobchuk.mooney.mooney.domain.Transaction
+import com.andriybobchuk.mooney.mooney.domain.usecase.*
+import com.andriybobchuk.mooney.mooney.domain.usecase.CalculateTransactionTotalUseCase
+import com.andriybobchuk.mooney.mooney.domain.usecase.ConvertAccountsToUiUseCase
+import com.andriybobchuk.mooney.mooney.domain.usecase.GetCategoriesUseCase
 import com.andriybobchuk.mooney.mooney.presentation.account.UiAccount
-import com.andriybobchuk.mooney.mooney.presentation.account.toUiAccounts
+
 import com.andriybobchuk.mooney.mooney.presentation.analytics.MonthKey
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +41,13 @@ data class TransactionState(
 )
 
 class TransactionViewModel(
-    private val repository: CoreRepository
+    private val getTransactionsUseCase: GetTransactionsUseCase,
+    private val addTransactionUseCase: AddTransactionUseCase,
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val getAccountsUseCase: GetAccountsUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val calculateTransactionTotalUseCase: CalculateTransactionTotalUseCase,
+    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase
 ) : ViewModel() {
 
     private var observeTransactionsJob: Job? = null
@@ -65,9 +75,7 @@ class TransactionViewModel(
         val end = month.firstDayOfNextMonth()
 
 
-        observeTransactionsJob = repository
-            .getAllTransactions()
-            .filterNotNull()
+        observeTransactionsJob = getTransactionsUseCase()
             .map { transactions ->
                 transactions.filterNotNull().filter {
                     it.date >= start && it.date < end
@@ -92,25 +100,16 @@ class TransactionViewModel(
     }
 
     private fun loadTotal() {
-        val totalPln = _uiState.value.transactions.filterNotNull().filter {
-            it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
-        }.sumOf {
-            // it.amount
-            GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, GlobalConfig.baseCurrency)
-        }
-
-        val converted = if (selectedCurrency != GlobalConfig.baseCurrency) {
-            GlobalConfig.testExchangeRates.convert(
-                totalPln,
-                from = GlobalConfig.baseCurrency,
-                to = selectedCurrency
-            )
-        } else totalPln
+        val result = calculateTransactionTotalUseCase(
+            transactions = _uiState.value.transactions,
+            selectedCurrency = selectedCurrency,
+            baseCurrency = GlobalConfig.baseCurrency
+        )
 
         _uiState.update {
             it.copy(
-                total = converted,
-                totalCurrency = selectedCurrency
+                total = result.total,
+                totalCurrency = result.currency
             )
         }
     }
@@ -119,11 +118,11 @@ class TransactionViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                repository.getAllAccounts().collect { list ->
-                    val categories = repository.getAllCategories()
+                getAccountsUseCase().collect { accounts ->
+                    val categories = getCategoriesUseCase()
                     _uiState.update {
                         it.copy(
-                            accounts = list.toUiAccounts(GlobalConfig.testExchangeRates),
+                            accounts = convertAccountsToUiUseCase(accounts),
                             categories = categories,
                             isLoading = false
                         )
@@ -143,8 +142,7 @@ class TransactionViewModel(
 
     fun upsertTransaction(transaction: Transaction) {
         viewModelScope.launch {
-            repository.upsertTransaction(transaction)
-            //loadTransactions()
+            addTransactionUseCase(transaction)
             observeTransactions(_uiState.value.selectedMonth)
             loadTotal()
         }
@@ -152,8 +150,7 @@ class TransactionViewModel(
 
     fun deleteTransaction(id: Int) {
         viewModelScope.launch {
-            repository.deleteTransaction(id)
-            // loadTransactions()
+            deleteTransactionUseCase(id)
             observeTransactions(_uiState.value.selectedMonth)
             loadTotal()
         }

@@ -9,6 +9,7 @@ import com.andriybobchuk.mooney.mooney.domain.CoreRepository
 import com.andriybobchuk.mooney.mooney.domain.Currency
 import com.andriybobchuk.mooney.mooney.domain.ExchangeRates
 import com.andriybobchuk.mooney.mooney.domain.Transaction
+import com.andriybobchuk.mooney.mooney.domain.usecase.*
 import com.andriybobchuk.mooney.mooney.presentation.formatWithCommas
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,7 @@ data class AnalyticsState(
 )
 
 class AnalyticsViewModel(
-    private val repository: CoreRepository,
+    private val calculateMonthlyAnalyticsUseCase: CalculateMonthlyAnalyticsUseCase
 ) : ViewModel() {
     private val baseCurrency: Currency = GlobalConfig.baseCurrency
     private val calculators: List<AnalyticsMetricCalculator> = listOf(
@@ -38,7 +39,6 @@ class AnalyticsViewModel(
         TaxesCalculator(),
         OperatingCostsCalculator(),
         NetIncomeCalculator(),
-        //BurnRateCalculator()
     )
 
     private val _state = MutableStateFlow(AnalyticsState())
@@ -76,77 +76,24 @@ class AnalyticsViewModel(
             val start = month.firstDay()
             val end = month.firstDayOfNextMonth()
 
-
-            val transactions = repository
-                .getAllTransactions()
-                .first()
-                .filterNotNull()
-                .filter { it.date >= start && it.date < end }
-            _state.update { it.copy(transactionsForMonth = transactions) }
-
-            // todo: extract to function calculateTotalRevenuePlnForMonth
-            val totalRevenuePln = _state.value.transactionsForMonth.filterNotNull().filter {
-                it.subcategory.type == CategoryType.INCOME
-            }.sumOf {
-                GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, baseCurrency)
-            }
-            _state.update {
-                it.copy(totalRevenuePlnForMonth = totalRevenuePln)
-            }
-
-            val metrics = calculators.map { it.calculate(totalRevenuePln, transactions, month, baseCurrency) }
-
-
-            ////// CAtegories //////
-            //////////
-            val exchangeRates = GlobalConfig.testExchangeRates
-
-//            val totalRevenue = transactions.sumConverted(baseCurrency, exchangeRates) {
-//                it.subcategory.type == CategoryType.INCOME
-//            }
-            val totalCostsPln = transactions.filter {
-                it.subcategory.type == CategoryType.EXPENSE && !it.subcategory.title.contains("ZUS") && !it.subcategory.title.contains("PIT")
-            }.sumOf {
-                //it.amount
-                GlobalConfig.testExchangeRates.convert(it.amount, it.account.currency, baseCurrency)
-            }
-
-            val categorySums: Map<Category, Double> = transactions
-                .filter { it.subcategory.type == CategoryType.EXPENSE }
-                .map { tx ->
-
-                    val general = if (tx.subcategory.isGeneralCategory()) {
-                        tx.subcategory
-                    } else if (tx.subcategory.isTypeCategory()) {
-                        tx.subcategory
-                    } else {
-                        tx.subcategory.parent!!
-                    }
-
-                    val converted = exchangeRates.convert(tx.amount, tx.account.currency, baseCurrency)
-                    general to converted
-                }
-                .groupBy({ it.first }, { it.second })
-                .mapValues { (_, amounts) -> amounts.sum() }
-
-            val topCategories = categorySums
-                .entries
-                .sortedByDescending { it.value }
-                .map { (category, totalAmount) ->
-                    TopCategorySummary(
-                        category = category,
-                        amount = totalAmount,
-                        formatted = format(totalAmount, baseCurrency),
-                        percentOfRevenue = percentage(totalAmount, totalCostsPln)
+            try {
+                val analyticsResult = calculateMonthlyAnalyticsUseCase(start, end, baseCurrency)
+                
+                _state.update {
+                    it.copy(
+                        transactionsForMonth = analyticsResult.transactions,
+                        totalRevenuePlnForMonth = analyticsResult.totalRevenue,
+                        topCategories = analyticsResult.topCategories,
+                        isLoading = false
                     )
                 }
-
-            _state.update {
-                it.copy(
-                    metrics = metrics,
-                    topCategories = topCategories,
-                    isLoading = false
-                )
+                
+                // Calculate metrics using existing calculators
+                val metrics = calculators.map { it.calculate(analyticsResult.totalRevenue, analyticsResult.transactions, month, baseCurrency) }
+                _state.update { it.copy(metrics = metrics) }
+                
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -310,23 +257,3 @@ class NetIncomeCalculator : AnalyticsMetricCalculator {
         return AnalyticsMetric("Net Income", format(netIncome, baseCurrency), subtitle)
     }
 }
-
-class BurnRateCalculator : AnalyticsMetricCalculator {
-    override suspend fun calculate(
-        revenue: Double,
-        transactions: List<Transaction>, month: MonthKey, baseCurrency: Currency
-    ): AnalyticsMetric {
-        //  val revenue = transactions.filter { it.subcategory.type == CategoryType.INCOME }.sumOf { it.amount }
-        val expenses = transactions.sumConverted(baseCurrency, GlobalConfig.testExchangeRates) {
-            it.subcategory.type == CategoryType.EXPENSE &&
-                    !it.subcategory.title.contains("ZUS") &&
-                    !it.subcategory.title.contains("PIT")
-        }
-
-        val burnRate = if (expenses > 0) expenses / 30 else 0.0
-        //val burnRate = if (expenses > 0) expenses / month.firstDay().lengthOfMonth() else 0.0 TODO
-        val subtitle = if (revenue > 0) "${percentage(burnRate, revenue)}% revenue/day" else "–"
-        return AnalyticsMetric("Burn Rate", format(burnRate, baseCurrency), subtitle)
-    }
-}
-

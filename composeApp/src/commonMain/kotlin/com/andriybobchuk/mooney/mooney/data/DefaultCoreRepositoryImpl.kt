@@ -46,55 +46,14 @@ class DefaultCoreRepositoryImpl(
 //    }
 
     override suspend fun upsertTransaction(transaction: Transaction) {
-        val existingTransaction = transactionDao.getById(transaction.id)
-
-        // 1. If updating: reverse the old transaction's effect
-        if (existingTransaction != null) {
-            val oldAccount = accountDao.getById(existingTransaction.accountId)
-            val oldCategoryType = getAllCategories().find { it.id == existingTransaction.subcategoryId }?.getRoot()?.type
-
-            if (oldAccount != null && oldCategoryType != null) {
-                val reversedAmount = when (oldCategoryType) {
-                    CategoryType.EXPENSE -> oldAccount.amount + existingTransaction.amount
-                    CategoryType.INCOME -> oldAccount.amount - existingTransaction.amount
-                }
-                accountDao.upsert(oldAccount.copy(amount = reversedAmount))
-            }
-        }
-
-        // 2. Apply the new transaction's effect
-        val newAccount = accountDao.getById(transaction.account.id)
-        if (newAccount != null) {
-            val categoryType = transaction.subcategory.getRoot().type
-            val adjustedAmount = when (categoryType) {
-                CategoryType.EXPENSE -> newAccount.amount - transaction.amount
-                CategoryType.INCOME -> newAccount.amount + transaction.amount
-            }
-            accountDao.upsert(newAccount.copy(amount = adjustedAmount))
-        }
-
-        // 3. Upsert transaction
+        // Simple data operation - business logic moved to use cases
         transactionDao.upsert(transaction.toEntity())
     }
 
 
     override suspend fun deleteTransaction(id: Int) {
-        val transaction = transactionDao.getById(id)
-
-        if (transaction != null) {
-            val account = accountDao.getById(transaction.accountId)
-            val categoryType = getAllCategories().find { it.id == transaction.subcategoryId }?.getRoot()?.type
-
-            if (account != null && categoryType != null) {
-                val adjustedAmount = when (categoryType) {
-                    CategoryType.EXPENSE -> account.amount + transaction.amount
-                    CategoryType.INCOME -> account.amount - transaction.amount
-                }
-                accountDao.upsert(account.copy(amount = adjustedAmount))
-            }
-
-            transactionDao.delete(id)
-        }
+        // Simple data operation - business logic moved to use cases
+        transactionDao.delete(id)
     }
 
 
@@ -135,34 +94,6 @@ class DefaultCoreRepositoryImpl(
 
         return entity.toDomain(subcategory!!, account!!)
     }
-
-
-//    private val transactions: MutableList<Transaction> = TransactionDataSource.transactions
-//
-//    override fun getAllTransactions(): List<Transaction> = transactions
-//
-//    override fun getTransactionById(id: Int): Transaction? = transactions.find { it.id == id }
-//
-//    override fun addTransaction(transaction: Transaction): Transaction {
-//        val newId = (transactions.maxOfOrNull { it.id } ?: 0) + 1
-//        val newTransaction = transaction.copy(id = newId)
-//        transactions.add(newTransaction)
-//        return newTransaction
-//    }
-//
-//    override fun updateTransaction(transaction: Transaction): Boolean {
-//        val index = transactions.indexOfFirst { it.id == transaction.id }
-//        return if (index != -1) {
-//            transactions[index] = transaction
-//            true
-//        } else {
-//            false
-//        }
-//    }
-//
-//    override fun deleteTransaction(id: Int): Boolean {
-//        return transactions.removeAll { it.id == id }
-//    }
 
 
     ///////////////////////////// CATEGORIES - DO NOT MODIFY //////////////////////

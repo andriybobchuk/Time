@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.andriybobchuk.mooney.mooney.data.GlobalConfig
 import com.andriybobchuk.mooney.mooney.domain.Account
-import com.andriybobchuk.mooney.mooney.domain.CoreRepository
+
 import com.andriybobchuk.mooney.mooney.domain.Currency
-import com.andriybobchuk.mooney.mooney.domain.ExchangeRates
+
+import com.andriybobchuk.mooney.mooney.domain.usecase.*
+import com.andriybobchuk.mooney.mooney.domain.usecase.CalculateNetWorthUseCase
+import com.andriybobchuk.mooney.mooney.domain.usecase.ConvertAccountsToUiUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
@@ -21,7 +24,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AccountViewModel(
-    private val repository: CoreRepository
+    private val getAccountsUseCase: GetAccountsUseCase,
+    private val addAccountUseCase: AddAccountUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val calculateNetWorthUseCase: CalculateNetWorthUseCase,
+    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase
 ) : ViewModel() {
 
     private var observeAccountsJob: Job? = null
@@ -41,12 +48,11 @@ class AccountViewModel(
 
     private fun observeAccounts() {
         observeAccountsJob?.cancel()
-        observeAccountsJob = repository
-            .getAllAccounts()
+        observeAccountsJob = getAccountsUseCase()
             .onEach { accounts ->
                 _uiState.update {
                     it.copy(
-                        accounts = accounts.toUiAccounts(GlobalConfig.testExchangeRates)
+                        accounts = convertAccountsToUiUseCase(accounts)
                     )
                 }
                 loadAccountsAndWorth()
@@ -62,10 +68,10 @@ class AccountViewModel(
         _uiState.update { it.copy(isLoading = true) }
 
         try {
-            repository.getAllAccounts().collect { list ->
+            getAccountsUseCase().collect { accounts ->
                 _uiState.update {
                     it.copy(
-                        accounts = list.toUiAccounts(GlobalConfig.testExchangeRates),
+                        accounts = convertAccountsToUiUseCase(accounts),
                         isLoading = false
                     )
                 }
@@ -78,26 +84,18 @@ class AccountViewModel(
     }
 
     private fun updateTotalNetWorth() {
-
-        val totalPln = state.value.accounts.filterNotNull().sumOf { it.baseCurrencyAmount }
-
-        val converted = if (selectedCurrency != GlobalConfig.baseCurrency) {
-            GlobalConfig.testExchangeRates.convert(
-                amount = totalPln,
-                from = GlobalConfig.baseCurrency,
-                to = selectedCurrency
-            )
-        } else {
-            totalPln
-        }
+        val result = calculateNetWorthUseCase(
+            accounts = state.value.accounts,
+            selectedCurrency = selectedCurrency,
+            baseCurrency = GlobalConfig.baseCurrency
+        )
 
         _uiState.update {
             it.copy(
-                totalNetWorth = converted,
-                totalNetWorthCurrency = selectedCurrency
+                totalNetWorth = result.totalNetWorth,
+                totalNetWorthCurrency = result.currency
             )
         }
-
     }
 
     fun onNetWorthLabelClick() {
@@ -117,8 +115,7 @@ class AccountViewModel(
             val account = Account(id, title, amount, currency, emoji)
 
             try {
-                repository.upsertAccount(account)
-                //loadAccountsAndWorth()
+                addAccountUseCase(account)
                 observeAccounts()
             } catch (e: Exception) {
             }
@@ -128,8 +125,7 @@ class AccountViewModel(
     fun deleteAccount(id: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.deleteAccount(id)
-                // loadAccountsAndWorth()
+                deleteAccountUseCase(id)
             } catch (e: Exception) {
             }
         }
@@ -157,37 +153,7 @@ data class AccountState(
 )
 
 
-fun List<Account?>.toUiAccounts(
-    rates: ExchangeRates
-): List<UiAccount?> {
-    return this.map { account ->
-        if (account?.currency == GlobalConfig.baseCurrency) {
-            UiAccount(
-                id = account.id,
-                title = account.title,
-                emoji = account.emoji,
-                originalAmount = account.amount,
-                originalCurrency = account.currency,
-                baseCurrencyAmount = account.amount,
-                exchangeRate = null
-            )
-        } else {
-            account?.let {
-                val rate = rates.convert(1.0, account.currency, GlobalConfig.baseCurrency)
-                val converted = rates.convert(account.amount, account.currency, GlobalConfig.baseCurrency)
-                UiAccount(
-                    id = account.id,
-                    title = account.title,
-                    emoji = account.emoji,
-                    originalAmount = account.amount,
-                    originalCurrency = account.currency,
-                    baseCurrencyAmount = converted,
-                    exchangeRate = rate
-                )
-            }
-        }
-    }
-}
+
 
 fun List<UiAccount>.toAccounts(): List<Account> {
     return this.map { uiAccount ->
