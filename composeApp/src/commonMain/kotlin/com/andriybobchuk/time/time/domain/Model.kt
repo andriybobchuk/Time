@@ -28,6 +28,19 @@ data class TimeBlock(
     fun getDurationInHours(): Double {
         return calculateDuration() / (1000.0 * 60 * 60)
     }
+    
+    fun getFormattedDuration(): String {
+        val hours = getDurationInHours()
+        return when {
+            hours < 1 -> "${(hours * 60).toInt()}m"
+            hours == hours.toInt().toDouble() -> "${hours.toInt()}h"
+            else -> {
+                val wholeHours = hours.toInt()
+                val minutes = ((hours - wholeHours) * 60).toInt()
+                if (minutes == 0) "${wholeHours}h" else "${wholeHours}h ${minutes}m"
+            }
+        }
+    }
 }
 
 data class Job(

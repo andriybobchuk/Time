@@ -87,7 +87,7 @@ class DefaultTimeRepositoryImpl(
     }
 
     override suspend fun getWeeklyAnalytics(weekStart: LocalDate): WeeklyAnalytics {
-        val weekEnd = weekStart.plus(kotlinx.datetime.DatePeriod(days = 7))
+        val weekEnd = weekStart.plus(kotlinx.datetime.DatePeriod(days = 6)) // 7 days total (0-6)
         val blocks = timeBlockDao.getByDateRange(weekStart.toString(), weekEnd.toString()).first()
             .map { it.toDomain() }
         

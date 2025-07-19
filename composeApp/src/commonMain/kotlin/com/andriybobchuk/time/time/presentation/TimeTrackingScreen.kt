@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +45,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
+import com.andriybobchuk.time.core.presentation.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,7 +141,7 @@ fun DateSelector(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Selected: ${selectedDate.toString()}")
+            Text("Selected: ${DateTimeUtils.formatDateWithYear(selectedDate)}")
         }
 
         DropdownMenu(
@@ -146,13 +149,13 @@ fun DateSelector(
             onDismissRequest = { expanded = false }
         ) {
             dateOptions.forEach { date ->
-                DropdownMenuItem(
-                    text = { Text(date.toString()) },
-                    onClick = {
-                        onDateSelected(date)
-                        expanded = false
-                    }
-                )
+                            DropdownMenuItem(
+                text = { Text(DateTimeUtils.formatDateWithYear(date)) },
+                onClick = {
+                    onDateSelected(date)
+                    expanded = false
+                }
+            )
             }
         }
     }
@@ -176,26 +179,27 @@ fun TimeBlockCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = timeBlock.jobName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Duration: ${timeBlock.getDurationInHours()}h",
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Start: ${timeBlock.startTime.hour.toString().padStart(2, '0')}:${timeBlock.startTime.minute.toString().padStart(2, '0')}",
-                    fontSize = 12.sp
-                )
-                timeBlock.endTime?.let { endTime ->
+            Row {
+                Row {
                     Text(
-                        text = "End: ${endTime.hour.toString().padStart(2, '0')}:${endTime.minute.toString().padStart(2, '0')}",
-                        fontSize = 12.sp
+                        text = timeBlock.jobName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = DateTimeUtils.formatDuration(timeBlock.getDurationInHours()),
+                        fontSize = 14.sp
                     )
                 }
+                Spacer(Modifier.weight(1f))
+                val endTime = timeBlock.endTime?.let { endTime ->
+                    DateTimeUtils.formatTime(endTime)
+                }
+                Text(
+                    text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${endTime?:"In Progress"}",
+                    fontSize = 12.sp
+                )
             }
 
             // Job color indicator
@@ -223,7 +227,7 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "Total: ${summary.totalHours}h",
+                text = "Total: ${DateTimeUtils.formatDuration(summary.totalHours)}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -236,7 +240,7 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${jobSummary.jobName}: ${jobSummary.totalHours}h",
+                        text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
                         fontSize = 14.sp
                     )
                     Text(
@@ -266,7 +270,7 @@ fun JobButtons(
             Button(
                 onClick = onStopTracking,
                 modifier = Modifier.fillMaxWidth(),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Red
                 )
             ) {
@@ -282,7 +286,7 @@ fun JobButtons(
                     Button(
                         onClick = { onStartTracking(job.id) },
                         modifier = Modifier.weight(1f),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = Color(job.color)
                         )
                     ) {

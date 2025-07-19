@@ -43,6 +43,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
+import com.andriybobchuk.time.core.presentation.DateTimeUtils
 
 private fun getWeekStart(date: LocalDate): LocalDate {
     val dayOfWeek = date.dayOfWeek.isoDayNumber
@@ -136,7 +137,7 @@ fun WeekSelector(
         val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val currentWeekStart = getWeekStart(currentDate)
         (0..3).map { weeksAgo ->
-            currentWeekStart.minus(DatePeriod(months = weeksAgo/4))
+            currentWeekStart.minus(DatePeriod(days = weeksAgo * 7))
         }.reversed()
     }
 
@@ -149,7 +150,7 @@ fun WeekSelector(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Week of: ${selectedWeekStart.toString()}")
+            Text("Week of: ${DateTimeUtils.formatWeekRange(selectedWeekStart)}")
         }
 
         DropdownMenu(
@@ -157,13 +158,13 @@ fun WeekSelector(
             onDismissRequest = { expanded = false }
         ) {
             weekOptions.forEach { weekStart ->
-                DropdownMenuItem(
-                    text = { Text("Week of: ${weekStart.toString()}") },
-                    onClick = {
-                        onWeekSelected(weekStart)
-                        expanded = false
-                    }
-                )
+                            DropdownMenuItem(
+                text = { Text("Week of: ${DateTimeUtils.formatWeekRange(weekStart)}") },
+                onClick = {
+                    onWeekSelected(weekStart)
+                    expanded = false
+                }
+            )
             }
         }
     }
@@ -191,17 +192,17 @@ fun WeeklySummaryCard(analytics: com.andriybobchuk.time.time.domain.WeeklyAnalyt
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Total Hours: ${analytics.totalHours}h",
+                text = "Total Hours: ${DateTimeUtils.formatDuration(analytics.totalHours)}",
                 fontSize = 16.sp
             )
             
             Text(
-                text = "Average Daily: ${analytics.averageDailyHours}h",
+                text = "Average Daily: ${DateTimeUtils.formatDuration(analytics.averageDailyHours)}",
                 fontSize = 16.sp
             )
             
             Text(
-                text = "Period: ${analytics.weekStart} to ${analytics.weekEnd}",
+                text = "Period: ${DateTimeUtils.formatDateWithYear(analytics.weekStart)} - ${DateTimeUtils.formatDateWithYear(analytics.weekEnd)}",
                 fontSize = 14.sp
             )
         }
@@ -230,11 +231,11 @@ fun JobAnalyticsCard(jobAnalytics: com.andriybobchuk.time.time.domain.JobAnalyti
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Total: ${jobAnalytics.totalHours}h",
+                    text = "Total: ${DateTimeUtils.formatDuration(jobAnalytics.totalHours)}",
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "Daily Avg: ${jobAnalytics.averageDailyHours}h",
+                    text = "Daily Avg: ${DateTimeUtils.formatDuration(jobAnalytics.averageDailyHours)}",
                     fontSize = 14.sp
                 )
                 Text(
@@ -268,7 +269,7 @@ fun DailySummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "${summary.date} - ${summary.totalHours}h",
+                text = "${DateTimeUtils.formatDate(summary.date)} - ${DateTimeUtils.formatDuration(summary.totalHours)}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -281,7 +282,7 @@ fun DailySummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${jobSummary.jobName}: ${jobSummary.totalHours}h",
+                        text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
                         fontSize = 12.sp
                     )
                     Text(
