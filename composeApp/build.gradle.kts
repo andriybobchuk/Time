@@ -82,11 +82,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.andriybobchuk.mooney"
+    namespace = "com.plcoding.bookpedia"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.andriybobchuk.mooney"
+        applicationId = "com.plcoding.bookpedia"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -116,11 +116,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.andriybobchuk.mooney.MainKt"
+        mainClass = "com.plcoding.bookpedia.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.andriybobchuk.mooney"
+            packageName = "com.plcoding.bookpedia"
             packageVersion = "1.0.0"
         }
     }
