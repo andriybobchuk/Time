@@ -46,6 +46,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
+import com.andriybobchuk.time.time.data.TimeDataSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +59,16 @@ fun TimeTrackingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Time Tracking") }
+                title = { Text("Time Tracking") },
+                actions = {
+                    // Date selector in top bar
+                    DateSelectorInTopBar(
+                        selectedDate = state.selectedDate,
+                        onDateSelected = { date ->
+                            viewModel.onAction(TimeTrackingAction.SelectDate(date))
+                        }
+                    )
+                }
             )
         },
         bottomBar = { bottomNavbar() }
@@ -68,13 +78,6 @@ fun TimeTrackingScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Date selector
-            DateSelector(
-                selectedDate = state.selectedDate,
-                onDateSelected = { date ->
-                    viewModel.onAction(TimeTrackingAction.SelectDate(date))
-                }
-            )
 
             // Time blocks list
             LazyColumn(
@@ -117,12 +120,11 @@ fun TimeTrackingScreen(
 }
 
 @Composable
-fun DateSelector(
+fun DateSelectorInTopBar(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Simple date formatting without DateTimeFormat
     
     // Generate last 7 days for dropdown
     val dateOptions = remember {
@@ -132,16 +134,18 @@ fun DateSelector(
         }.reversed()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
+    Box {
         Button(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth()
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
         ) {
-            Text("Selected: ${DateTimeUtils.formatDateWithYear(selectedDate)}")
+            Text(
+                text = DateTimeUtils.formatDate(selectedDate),
+                color = Color.Black
+            )
         }
 
         DropdownMenu(
@@ -149,13 +153,13 @@ fun DateSelector(
             onDismissRequest = { expanded = false }
         ) {
             dateOptions.forEach { date ->
-                            DropdownMenuItem(
-                text = { Text(DateTimeUtils.formatDateWithYear(date)) },
-                onClick = {
-                    onDateSelected(date)
-                    expanded = false
-                }
-            )
+                DropdownMenuItem(
+                    text = { Text(DateTimeUtils.formatDateWithYear(date)) },
+                    onClick = {
+                        onDateSelected(date)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -166,10 +170,16 @@ fun TimeBlockCard(
     timeBlock: TimeBlock,
     onDelete: () -> Unit
 ) {
+    // Get job color from TimeDataSource
+    val jobColor = remember(timeBlock.jobId) {
+        val job = TimeDataSource.jobs.find { it.id == timeBlock.jobId }
+        job?.color?.let { Color(it) }
+    }?:Color(0xFF808080)
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color(timeBlock.jobColor).copy(alpha = 0.1f)
+            containerColor = jobColor
         )
     ) {
         Row(
@@ -207,7 +217,7 @@ fun TimeBlockCard(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)
-                    .background(Color(timeBlock.jobColor))
+                    .background(jobColor)
             )
         }
     }
@@ -290,7 +300,10 @@ fun JobButtons(
                             containerColor = Color(job.color)
                         )
                     ) {
-                        Text(job.name)
+                        Text(
+                            text = job.name,
+                            color = Color.White
+                        )
                     }
                 }
             }

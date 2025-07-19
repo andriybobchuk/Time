@@ -21,7 +21,7 @@ object DateTimeUtils {
             Month.OCTOBER -> "Oct"
             Month.NOVEMBER -> "Nov"
             Month.DECEMBER -> "Dec"
-            else -> TODO()
+            else -> ""
         }
         
         return "$monthName ${date.dayOfMonth}"
@@ -41,7 +41,7 @@ object DateTimeUtils {
             Month.OCTOBER -> "October"
             Month.NOVEMBER -> "November"
             Month.DECEMBER -> "December"
-            else -> TODO()
+            else -> ""
         }
         
         return "$monthName ${date.dayOfMonth}, ${date.year}"

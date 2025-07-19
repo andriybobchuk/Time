@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 import com.andriybobchuk.time.time.data.TimeBlockDao
 import com.andriybobchuk.time.time.data.TimeBlockEntity
 
-@Database(entities = [TransactionEntity::class, AccountEntity::class, TimeBlockEntity::class], version = 2)
+@Database(entities = [TransactionEntity::class, AccountEntity::class, TimeBlockEntity::class], version = 3)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao
@@ -14,6 +14,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val timeBlockDao: TimeBlockDao
 
     companion object {
-        const val DB_NAME = "timeTracker.db"
+        const val DB_NAME = "time.db"
     }
 }

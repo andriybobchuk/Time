@@ -63,7 +63,6 @@ class DefaultTimeRepositoryImpl(
                 JobSummary(
                     jobId = jobId,
                     jobName = job.name,
-                    jobColor = job.color,
                     totalHours = totalHours,
                     percentage = 0.0 // Will be calculated below
                 )
@@ -74,7 +73,7 @@ class DefaultTimeRepositoryImpl(
         // Calculate percentages
         val updatedJobBreakdown = jobBreakdown.mapValues { (_, summary) ->
             summary.copy(
-                percentage = if (totalHours > 0) (summary.totalHours / totalHours) * 100 else 0.0
+                percentage = if (totalHours > 0) ((summary.totalHours / totalHours) * 100).toInt().toDouble() else 0.0
             )
         }
         
@@ -105,7 +104,6 @@ class DefaultTimeRepositoryImpl(
                     JobSummary(
                         jobId = jobId,
                         jobName = job.name,
-                        jobColor = job.color,
                         totalHours = totalHours,
                         percentage = 0.0
                     )
@@ -116,7 +114,7 @@ class DefaultTimeRepositoryImpl(
             // Calculate percentages
             val updatedJobBreakdown = jobBreakdown.mapValues { (_, summary) ->
                 summary.copy(
-                    percentage = if (totalHours > 0) (summary.totalHours / totalHours) * 100 else 0.0
+                    percentage = if (totalHours > 0) ((summary.totalHours / totalHours) * 100).toInt().toDouble() else 0.0
                 )
             }
             
@@ -139,10 +137,9 @@ class DefaultTimeRepositoryImpl(
                 JobAnalytics(
                     jobId = jobId,
                     jobName = job.name,
-                    jobColor = job.color,
                     totalHours = jobTotalHours,
                     averageDailyHours = jobAverageDailyHours,
-                    percentage = if (totalHours > 0) (jobTotalHours / totalHours) * 100 else 0.0
+                    percentage = if (totalHours > 0) ((jobTotalHours / totalHours) * 100).toInt().toDouble() else 0.0
                 )
             }
         

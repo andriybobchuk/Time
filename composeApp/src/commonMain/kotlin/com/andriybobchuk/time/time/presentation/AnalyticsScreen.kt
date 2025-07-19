@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -44,6 +45,7 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
+import com.andriybobchuk.time.time.data.TimeDataSource
 
 private fun getWeekStart(date: LocalDate): LocalDate {
     val dayOfWeek = date.dayOfWeek.isoDayNumber
@@ -115,8 +117,15 @@ fun AnalyticsScreen(
                         )
                     }
                     
-                    items(state.weeklyAnalytics!!.dailySummaries) { dailySummary ->
-                        DailySummaryCard(summary = dailySummary)
+                    item {
+                        androidx.compose.foundation.lazy.LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+                        ) {
+                            items(state.weeklyAnalytics!!.dailySummaries) { dailySummary ->
+                                DailySummaryCardHorizontal(summary = dailySummary)
+                            }
+                        }
                     }
                 }
             }
@@ -211,11 +220,15 @@ fun WeeklySummaryCard(analytics: com.andriybobchuk.time.time.domain.WeeklyAnalyt
 
 @Composable
 fun JobAnalyticsCard(jobAnalytics: com.andriybobchuk.time.time.domain.JobAnalytics) {
+    // Get job color from TimeDataSource
+    val jobColor = remember(jobAnalytics.jobId) {
+        val job = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }
+        job?.color?.let { Color(it) }
+    }?:Color(0x6CFB95)
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(jobAnalytics.jobColor).copy(alpha = 0.1f)
-        )
+        colors = CardDefaults.cardColors(jobColor)
     ) {
         Row(
             modifier = Modifier
@@ -249,7 +262,7 @@ fun JobAnalyticsCard(jobAnalytics: com.andriybobchuk.time.time.domain.JobAnalyti
                 modifier = Modifier
                     .size(20.dp)
                     .clip(CircleShape)
-                    .background(Color(jobAnalytics.jobColor))
+                    .background(jobColor)
             )
         }
     }
@@ -288,6 +301,55 @@ fun DailySummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                     Text(
                         text = "${jobSummary.percentage}%",
                         fontSize = 12.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DailySummaryCardHorizontal(summary: com.andriybobchuk.time.time.domain.DailySummary) {
+    Card(
+        modifier = Modifier.width(140.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Gray.copy(alpha = 0.1f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = DateTimeUtils.formatDate(summary.date),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = DateTimeUtils.formatDuration(summary.totalHours),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Blue
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            summary.jobBreakdown.values.toList().forEach { jobSummary ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = jobSummary.jobName,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "${jobSummary.percentage}%",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

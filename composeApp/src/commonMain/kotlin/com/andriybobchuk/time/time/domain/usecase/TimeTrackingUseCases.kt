@@ -26,7 +26,6 @@ class StartTimeTrackingUseCase(
             val newBlock = TimeBlock(
                 jobId = job.id,
                 jobName = job.name,
-                jobColor = job.color,
                 startTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             )
             

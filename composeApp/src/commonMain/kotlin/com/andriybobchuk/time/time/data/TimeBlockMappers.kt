@@ -8,7 +8,6 @@ fun TimeBlockEntity.toDomain(): TimeBlock {
         id = id,
         jobId = jobId,
         jobName = jobName,
-        jobColor = jobColor,
         startTime = LocalDateTime.parse(startTime),
         endTime = endTime?.let { LocalDateTime.parse(it) },
         duration = duration
@@ -20,7 +19,6 @@ fun TimeBlock.toEntity(): TimeBlockEntity {
         id = id,
         jobId = jobId,
         jobName = jobName,
-        jobColor = jobColor,
         startTime = startTime.toString(),
         endTime = endTime?.toString(),
         duration = duration

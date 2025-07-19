@@ -11,7 +11,6 @@ data class TimeBlock(
     val id: Int = 0,
     val jobId: String,
     val jobName: String,
-    val jobColor: Int,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime? = null,
     val duration: Long? = null // in milliseconds
@@ -59,7 +58,6 @@ data class DailySummary(
 data class JobSummary(
     val jobId: String,
     val jobName: String,
-    val jobColor: Int,
     val totalHours: Double,
     val percentage: Double
 )
@@ -76,7 +74,6 @@ data class WeeklyAnalytics(
 data class JobAnalytics(
     val jobId: String,
     val jobName: String,
-    val jobColor: Int,
     val totalHours: Double,
     val averageDailyHours: Double,
     val percentage: Double
