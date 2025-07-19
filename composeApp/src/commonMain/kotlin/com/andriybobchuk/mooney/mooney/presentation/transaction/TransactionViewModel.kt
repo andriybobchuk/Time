@@ -12,6 +12,7 @@ import com.andriybobchuk.mooney.mooney.domain.Transaction
 import com.andriybobchuk.mooney.mooney.domain.usecase.*
 import com.andriybobchuk.mooney.mooney.domain.usecase.CalculateTransactionTotalUseCase
 import com.andriybobchuk.mooney.mooney.domain.usecase.ConvertAccountsToUiUseCase
+import com.andriybobchuk.mooney.mooney.domain.usecase.CurrencyManagerUseCase
 import com.andriybobchuk.mooney.mooney.domain.usecase.GetCategoriesUseCase
 import com.andriybobchuk.mooney.mooney.presentation.account.UiAccount
 
@@ -47,7 +48,8 @@ class TransactionViewModel(
     private val getAccountsUseCase: GetAccountsUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val calculateTransactionTotalUseCase: CalculateTransactionTotalUseCase,
-    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase
+    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase,
+    private val currencyManagerUseCase: CurrencyManagerUseCase
 ) : ViewModel() {
 
     private var observeTransactionsJob: Job? = null
@@ -89,11 +91,6 @@ class TransactionViewModel(
             .launchIn(viewModelScope)
     }
 
-
-    private val availableCurrencies = GlobalConfig.testExchangeRates.rates.keys.toList()
-    private var selectedCurrencyIndex = 0
-    private var selectedCurrency = GlobalConfig.baseCurrency
-
     init {
         loadDataForBottomSheet()
         //loadTotal()
@@ -102,7 +99,7 @@ class TransactionViewModel(
     private fun loadTotal() {
         val result = calculateTransactionTotalUseCase(
             transactions = _uiState.value.transactions,
-            selectedCurrency = selectedCurrency,
+            selectedCurrency = currencyManagerUseCase.getCurrentCurrency(),
             baseCurrency = GlobalConfig.baseCurrency
         )
 
@@ -135,8 +132,7 @@ class TransactionViewModel(
     }
 
     fun onTotalCurrencyClick() {
-        selectedCurrencyIndex = (selectedCurrencyIndex + 1) % availableCurrencies.size
-        selectedCurrency = availableCurrencies[selectedCurrencyIndex]
+        currencyManagerUseCase.cycleToNextCurrency()
         loadTotal()
     }
 

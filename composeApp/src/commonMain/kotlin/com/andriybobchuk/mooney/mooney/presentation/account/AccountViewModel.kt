@@ -10,6 +10,7 @@ import com.andriybobchuk.mooney.mooney.domain.Currency
 import com.andriybobchuk.mooney.mooney.domain.usecase.*
 import com.andriybobchuk.mooney.mooney.domain.usecase.CalculateNetWorthUseCase
 import com.andriybobchuk.mooney.mooney.domain.usecase.ConvertAccountsToUiUseCase
+import com.andriybobchuk.mooney.mooney.domain.usecase.CurrencyManagerUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
@@ -28,7 +29,8 @@ class AccountViewModel(
     private val addAccountUseCase: AddAccountUseCase,
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val calculateNetWorthUseCase: CalculateNetWorthUseCase,
-    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase
+    private val convertAccountsToUiUseCase: ConvertAccountsToUiUseCase,
+    private val currencyManagerUseCase: CurrencyManagerUseCase
 ) : ViewModel() {
 
     private var observeAccountsJob: Job? = null
@@ -60,10 +62,6 @@ class AccountViewModel(
             .launchIn(viewModelScope)
     }
 
-    private val availableCurrencies = GlobalConfig.testExchangeRates.rates.keys.toList()
-    private var selectedCurrencyIndex = 0
-    private var selectedCurrency = GlobalConfig.baseCurrency
-
     private suspend fun loadAccountsAndWorth() = withContext(Dispatchers.IO) {
         _uiState.update { it.copy(isLoading = true) }
 
@@ -86,7 +84,7 @@ class AccountViewModel(
     private fun updateTotalNetWorth() {
         val result = calculateNetWorthUseCase(
             accounts = state.value.accounts,
-            selectedCurrency = selectedCurrency,
+            selectedCurrency = currencyManagerUseCase.getCurrentCurrency(),
             baseCurrency = GlobalConfig.baseCurrency
         )
 
@@ -99,8 +97,7 @@ class AccountViewModel(
     }
 
     fun onNetWorthLabelClick() {
-        selectedCurrencyIndex = (selectedCurrencyIndex + 1) % availableCurrencies.size
-        selectedCurrency = availableCurrencies[selectedCurrencyIndex]
+        currencyManagerUseCase.cycleToNextCurrency()
         updateTotalNetWorth()
     }
 
@@ -132,7 +129,6 @@ class AccountViewModel(
     }
 }
 
-
 data class UiAccount(
     val id: Int,
     val title: String,
@@ -151,9 +147,6 @@ data class AccountState(
     val isLoading: Boolean = false,
     val isError: Boolean = false
 )
-
-
-
 
 fun List<UiAccount>.toAccounts(): List<Account> {
     return this.map { uiAccount ->
