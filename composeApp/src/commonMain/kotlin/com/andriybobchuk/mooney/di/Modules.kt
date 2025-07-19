@@ -1,15 +1,14 @@
 package com.andriybobchuk.mooney.di
 
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.andriybobchuk.mooney.mooney.data.DefaultCoreRepositoryImpl
-import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsViewModel
-import com.andriybobchuk.mooney.mooney.presentation.account.AccountViewModel
 import com.andriybobchuk.mooney.core.data.HttpClientFactory
-import com.andriybobchuk.mooney.mooney.domain.CoreRepository
 import com.andriybobchuk.mooney.core.data.database.AppDatabase
 import com.andriybobchuk.mooney.core.data.database.MooneyDatabaseFactory
+import com.andriybobchuk.mooney.mooney.data.DefaultCoreRepositoryImpl
+import com.andriybobchuk.mooney.mooney.domain.CoreRepository
+import com.andriybobchuk.mooney.mooney.presentation.account.AccountViewModel
+import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsViewModel
 import com.andriybobchuk.mooney.mooney.presentation.transaction.TransactionViewModel
-
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf

@@ -2,7 +2,6 @@ package com.andriybobchuk.mooney.app
 
 
 import androidx.compose.runtime.Composable
-
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavBackStackEntry
@@ -11,10 +10,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsScreen
-import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsViewModel
 import com.andriybobchuk.mooney.mooney.presentation.account.AccountScreen
 import com.andriybobchuk.mooney.mooney.presentation.account.AccountViewModel
+import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsScreen
+import com.andriybobchuk.mooney.mooney.presentation.analytics.AnalyticsViewModel
 import com.andriybobchuk.mooney.mooney.presentation.transaction.TransactionViewModel
 import com.andriybobchuk.mooney.mooney.presentation.transaction.TransactionsScreen
 import org.koin.compose.viewmodel.koinViewModel

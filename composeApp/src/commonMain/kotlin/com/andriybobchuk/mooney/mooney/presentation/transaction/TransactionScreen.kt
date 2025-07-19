@@ -256,9 +256,9 @@ fun TransactionsScreenContent(
 
                         Box(
                             modifier = Modifier.combinedClickable(
-                            onClick = { onEdit(tx) },
-                            onLongClick = { expanded = true }
-                        )) {
+                                onClick = { onEdit(tx) },
+                                onLongClick = { expanded = true }
+                            )) {
                             TransactionItem(tx)
                             DropdownMenu(
                                 expanded = expanded,

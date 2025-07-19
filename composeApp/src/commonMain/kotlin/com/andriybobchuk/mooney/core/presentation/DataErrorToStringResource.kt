@@ -1,5 +1,6 @@
 package com.andriybobchuk.mooney.core.presentation
 
+import com.andriybobchuk.mooney.core.domain.DataError
 import mooney.composeapp.generated.resources.Res
 import mooney.composeapp.generated.resources.error_disk_full
 import mooney.composeapp.generated.resources.error_no_internet
@@ -7,7 +8,6 @@ import mooney.composeapp.generated.resources.error_request_timeout
 import mooney.composeapp.generated.resources.error_serialization
 import mooney.composeapp.generated.resources.error_too_many_requests
 import mooney.composeapp.generated.resources.error_unknown
-import com.andriybobchuk.mooney.core.domain.DataError
 
 fun DataError.toUiText(): UiText {
     val stringRes = when (this) {

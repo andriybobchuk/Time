@@ -1,7 +1,5 @@
 package com.andriybobchuk.mooney.core.data.database
 
-import com.andriybobchuk.mooney.core.data.database.AccountEntity
-import com.andriybobchuk.mooney.core.data.database.TransactionEntity
 import com.andriybobchuk.mooney.mooney.domain.Account
 import com.andriybobchuk.mooney.mooney.domain.Category
 import com.andriybobchuk.mooney.mooney.domain.Currency
