@@ -1,5 +1,6 @@
 package com.andriybobchuk.time.time.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -28,9 +30,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +58,13 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
 import com.andriybobchuk.time.core.presentation.Icons
+import com.andriybobchuk.time.core.presentation.Toolbars
+import com.andriybobchuk.time.core.presentation.bottomSheetBackground
+import com.andriybobchuk.time.core.presentation.buttonBackground
+import com.andriybobchuk.time.core.presentation.buttonTextColor
+import com.andriybobchuk.time.core.presentation.cardBackground
+import com.andriybobchuk.time.core.presentation.secondaryTextColor
+import com.andriybobchuk.time.core.presentation.textColor
 import com.andriybobchuk.time.time.data.TimeDataSource
 import com.andriybobchuk.time.time.domain.Job
 
@@ -64,19 +76,20 @@ fun TimeTrackingScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Time Tracking") },
-                actions = {
-                    // Date selector in top bar
+            Toolbars.Primary(
+                title = "Time Blocks",
+                customContent = {
                     DateSelectorInTopBar(
                         selectedDate = state.selectedDate,
                         onDateSelected = { date ->
                             viewModel.onAction(TimeTrackingAction.SelectDate(date))
                         }
                     )
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         },
         bottomBar = { bottomNavbar() },
@@ -84,9 +97,16 @@ fun TimeTrackingScreen(
             FloatingActionButton(
                 onClick = {
                     viewModel.onAction(TimeTrackingAction.ShowAddSheet)
-                }
+                },
+                containerColor = Color.Black,
+                contentColor = Color.White
             ) {
-                Icons.AddIcon()
+                Icon(
+                    modifier = Modifier.size(18.dp),
+                    painter = Icons.AddIcon(),
+                    contentDescription = ""
+                )
+
             }
         }
     ) { paddingValues ->
@@ -185,13 +205,13 @@ fun DateSelectorInTopBar(
         Button(
             onClick = { expanded = true },
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent
+                containerColor = MaterialTheme.colorScheme.buttonBackground()
             ),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
         ) {
             Text(
                 text = DateTimeUtils.formatDate(selectedDate),
-                color = Color.Black
+                color = MaterialTheme.colorScheme.buttonTextColor()
             )
         }
 
@@ -235,45 +255,44 @@ fun TimeBlockCard(
                 )
             },
         colors = CardDefaults.cardColors(
-            containerColor = jobColor
-        )
+            containerColor = jobColor.copy(alpha = 0.25f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(vertical = 10.dp, horizontal = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = timeBlock.jobName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Duration: ${DateTimeUtils.formatDuration(timeBlock.getDurationInHours())}",
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Start: ${DateTimeUtils.formatTime(timeBlock.startTime)}",
-                    fontSize = 12.sp
-                )
-                timeBlock.endTime?.let { endTime ->
+            Row {
+                Row {
                     Text(
-                        text = "End: ${DateTimeUtils.formatTime(endTime)}",
-                        fontSize = 12.sp
+                        text = timeBlock.jobName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.textColor()
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = DateTimeUtils.formatDuration(timeBlock.getDurationInHours()),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.textColor()
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Row {
+                    val end = timeBlock.endTime?.let { endTime ->
+                        DateTimeUtils.formatTime(endTime)
+                    }
+                    Text(
+                        text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.secondaryTextColor()
                     )
                 }
             }
-
-            // Job color indicator
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(jobColor)
-            )
         }
     }
     
@@ -313,6 +332,7 @@ fun EditTimeBlockSheet(
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.bottomSheetBackground()
     ) {
         Column(
             modifier = Modifier
@@ -323,20 +343,19 @@ fun EditTimeBlockSheet(
             var jobExpanded by remember { mutableStateOf(false) }
             val selectedJob = jobs.find { it.id == selectedJobId }
 
-            Text("Edit Time Block")
-            Text("Project", fontWeight = FontWeight.Bold)
+            Text("Edit Time Block", color = MaterialTheme.colorScheme.textColor())
+            Text("Project", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
             Box {
                 Button(
                     onClick = { jobExpanded = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                        containerColor = MaterialTheme.colorScheme.buttonBackground()
+                    )
                 ) {
                     Text(
                         text = selectedJob?.name ?: "Select Project",
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.buttonTextColor()
                     )
                 }
                 
@@ -389,7 +408,7 @@ fun EditTimeBlockSheet(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.textColor())
                 }
                 
                 Button(
@@ -408,9 +427,12 @@ fun EditTimeBlockSheet(
                             onSave(updatedTimeBlock)
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.buttonBackground()
+                    )
                 ) {
-                    Text("Save")
+                    Text("Save", color = MaterialTheme.colorScheme.buttonTextColor())
                 }
             }
             
@@ -432,6 +454,7 @@ fun AddTimeBlockSheet(
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.bottomSheetBackground()
     ) {
         Column(
             modifier = Modifier
@@ -442,20 +465,19 @@ fun AddTimeBlockSheet(
             var jobExpanded by remember { mutableStateOf(false) }
             val selectedJob = jobs.find { it.id == selectedJobId }
 
-            Text("Add Time Block")
-            Text("Project", fontWeight = FontWeight.Bold)
+            Text("Add Time Block", color = MaterialTheme.colorScheme.textColor())
+            Text("Project", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
             Box {
                 Button(
                     onClick = { jobExpanded = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                        containerColor = MaterialTheme.colorScheme.buttonBackground()
+                    )
                 ) {
                     Text(
                         text = selectedJob?.name ?: "Select Project",
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.buttonTextColor()
                     )
                 }
                 
@@ -552,8 +574,9 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Black.copy(alpha = 0.1f)
-        )
+            containerColor = MaterialTheme.colorScheme.cardBackground()
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -563,7 +586,8 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
             Text(
                 text = "Total: ${DateTimeUtils.formatDuration(summary.totalHours)}",
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.textColor()
             )
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -575,11 +599,13 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                 ) {
                     Text(
                         text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.textColor()
                     )
                     Text(
                         text = "${jobSummary.percentage}%",
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.secondaryTextColor()
                     )
                 }
             }
@@ -605,29 +631,40 @@ fun JobButtons(
                 onClick = onStopTracking,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Red
+                    containerColor = MaterialTheme.colorScheme.buttonBackground()
                 )
             ) {
-                Text("Stop Tracking (${activeTimeBlock.jobName})")
+                Text(
+                    "Stop Tracking (${activeTimeBlock.jobName})",
+                    color = MaterialTheme.colorScheme.buttonTextColor()
+                )
             }
         } else {
             // Job buttons
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.wrapContentWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 jobs.forEach { job ->
                     Button(
                         onClick = { onStartTracking(job.id) },
-                        modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(job.color)
                         )
                     ) {
-                        Text(
-                            text = job.name,
-                            color = Color.White
-                        )
+                        Row {
+                            Icon(
+                                modifier = Modifier.size(18.dp),
+                                painter = Icons.AddIcon(),
+                                tint = MaterialTheme.colorScheme.textColor(),
+                                contentDescription = ""
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = job.name,
+                                color = MaterialTheme.colorScheme.textColor()
+                            )
+                        }
                     }
                 }
             }

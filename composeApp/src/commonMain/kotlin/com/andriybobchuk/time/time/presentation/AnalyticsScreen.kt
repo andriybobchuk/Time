@@ -22,9 +22,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +53,10 @@ import com.andriybobchuk.time.core.presentation.PieChart
 import com.andriybobchuk.time.core.presentation.PieChartData
 import com.andriybobchuk.time.core.presentation.BarChartData
 import com.andriybobchuk.time.core.presentation.DailyBarData
+import com.andriybobchuk.time.core.presentation.Toolbars
+import com.andriybobchuk.time.core.presentation.buttonBackground
+import com.andriybobchuk.time.core.presentation.buttonTextColor
+import com.andriybobchuk.time.core.presentation.cardBackground
 import com.andriybobchuk.time.time.data.TimeDataSource
 
 private fun getWeekStart(date: LocalDate): LocalDate {
@@ -67,19 +73,20 @@ fun AnalyticsScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Analytics") },
-                actions = {
-                    // Week selector in top bar
+            Toolbars.Primary(
+                title = "Analytics",
+                customContent = {
                     WeekSelectorInTopBar(
                         selectedWeekStart = state.selectedWeekStart,
                         onWeekSelected = { weekStart ->
                             viewModel.onAction(AnalyticsAction.SelectWeek(weekStart))
                         }
                     )
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         },
         bottomBar = { bottomNavbar() }
@@ -132,14 +139,13 @@ fun WeekSelectorInTopBar(
         Button(
             onClick = { expanded = true },
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.buttonBackground()
             ),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black)
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
         ) {
             Text(
                 text = DateTimeUtils.formatWeekRange(selectedWeekStart),
-                color = Color.Black
+                color = MaterialTheme.colorScheme.buttonTextColor()
             )
         }
 
@@ -165,10 +171,10 @@ fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyA
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.cardBackground()
         ),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -207,10 +213,10 @@ fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.Weekl
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.cardBackground()
         ),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier

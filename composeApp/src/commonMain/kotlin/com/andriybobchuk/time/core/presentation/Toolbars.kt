@@ -8,6 +8,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -29,7 +30,7 @@ object Toolbars {
         actions: List<ToolBarAction> = emptyList(),
         customContent: @Composable (() -> Unit)? = null
     ) {
-        CenterAlignedTopAppBar(
+        TopAppBar(
             title = {
                 Text(
                     text = title,
@@ -39,8 +40,8 @@ object Toolbars {
             modifier = modifier,
             scrollBehavior = scrollBehavior,
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                containerColor = Color(0xFF3E4DBA),
-                titleContentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.textColor(),
             ),
             navigationIcon = {
                 if (showBackButton) {

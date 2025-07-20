@@ -2,6 +2,7 @@ package com.andriybobchuk.time.app
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
@@ -22,7 +23,8 @@ fun BottomNavigationBar(navController: NavHostController, selectedItemIndex: Int
     )
 
     NavigationBar(
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground
     ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -67,7 +69,8 @@ fun TimeBottomNavigationBar(navController: NavHostController, selectedItemIndex:
     )
 
     NavigationBar(
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground
     ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -91,8 +94,8 @@ fun TimeBottomNavigationBar(navController: NavHostController, selectedItemIndex:
                 },
                 colors = NavigationBarItemColors(
                     selectedIconColor = Color.White,
-                    selectedTextColor = Color(0xFF3E4DBA),
-                    selectedIndicatorColor = Color(0xFF3E4DBA),
+                    selectedTextColor = Color.Black,
+                    selectedIndicatorColor = Color.Black,
                     unselectedIconColor = Color.Gray,
                     unselectedTextColor = Color.Gray,
                     disabledIconColor = Color.Gray,
