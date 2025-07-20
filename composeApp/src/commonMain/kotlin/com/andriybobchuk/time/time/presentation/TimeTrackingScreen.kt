@@ -249,6 +249,7 @@ fun TimeBlockCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(maxOf((timeBlock.getDurationInHours() * 40).dp, 60.dp))
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { showContextMenu = true }
