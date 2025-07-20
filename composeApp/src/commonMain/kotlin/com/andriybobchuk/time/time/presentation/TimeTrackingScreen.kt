@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
@@ -67,6 +68,7 @@ import com.andriybobchuk.time.core.presentation.secondaryTextColor
 import com.andriybobchuk.time.core.presentation.textColor
 import com.andriybobchuk.time.time.data.TimeDataSource
 import com.andriybobchuk.time.time.domain.Job
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,30 +118,118 @@ fun TimeTrackingScreen(
                 .padding(paddingValues)
         ) {
 
-            // Time blocks list
+            // Simple calendar view
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                items(state.timeBlocks) { timeBlock ->
-                    TimeBlockCard(
-                        timeBlock = timeBlock,
-                        onDelete = {
-                            viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(timeBlock.id))
-                        },
-                        onEdit = {
-                            viewModel.onAction(TimeTrackingAction.EditTimeBlock(timeBlock))
+                val sortedBlocks = state.timeBlocks.sortedBy { it.startTime }
+                
+                if (sortedBlocks.isNotEmpty()) {
+                    val startHour = sortedBlocks.first().startTime.hour
+                    val endHour = (sortedBlocks.last().endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
+                    
+                                        // Show events and empty hours in chronological order
+                    val shownHourLabels = mutableSetOf<Int>()
+                    
+                    for (hour in startHour..endHour) {
+                        // Check if this hour is covered by any event's duration
+                        val isHourCovered = sortedBlocks.any { timeBlock ->
+                            val eventStartHour = timeBlock.startTime.hour
+                            val eventEndHour = (timeBlock.endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
+                            hour in eventStartHour..eventEndHour
                         }
-                    )
-                }
-
-                // Total summary card
-                if (state.dailySummary != null) {
+                        
+                        if (isHourCovered) {
+                            // This hour is covered by an event, show events that start in this hour
+                            val eventsThisHour = sortedBlocks.filter { it.startTime.hour == hour }
+                            eventsThisHour.forEach { timeBlock ->
+                                // Show hour label only once per hour
+                                if (hour !in shownHourLabels) {
+                                    item {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(calendarConfig.hourHeight),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${hour}:00",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.secondaryTextColor(),
+                                                modifier = Modifier.width(50.dp)
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(1.dp)
+                                                    .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
+                                            )
+                                        }
+                                    }
+                                    shownHourLabels.add(hour)
+                                }
+                                
+                                // Show the event
+                                item {
+                                    val durationHours = timeBlock.getDurationInHours()
+                                    val heightMultiplier = maxOf(durationHours, 1.0)
+                                    val eventHeight = maxOf(calendarConfig.hourHeight * heightMultiplier.toFloat(), calendarConfig.minEventHeight)
+                                    TimeBlockCard(
+                                        timeBlock = timeBlock,
+                                        onDelete = {
+                                            viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(timeBlock.id))
+                                        },
+                                        onEdit = {
+                                            viewModel.onAction(TimeTrackingAction.EditTimeBlock(timeBlock))
+                                        },
+                                        modifier = Modifier.height(eventHeight)
+                                    )
+                                }
+                            }
+                        } else {
+                            // This hour is truly empty (gap), show label
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(calendarConfig.hourHeight),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${hour}:00",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.secondaryTextColor(),
+                                        modifier = Modifier.width(50.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Empty state
                     item {
-                        TotalSummaryCard(summary = state.dailySummary!!)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No time blocks for this day",
+                                color = MaterialTheme.colorScheme.secondaryTextColor(),
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
             }
@@ -236,7 +326,8 @@ fun DateSelectorInTopBar(
 fun TimeBlockCard(
     timeBlock: TimeBlock,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     // Get job color from TimeDataSource
     val jobColor = remember(timeBlock.jobId) {
@@ -247,9 +338,8 @@ fun TimeBlockCard(
     var showContextMenu by remember { mutableStateOf(false) }
     
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(maxOf((timeBlock.getDurationInHours() * 40).dp, 60.dp))
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { showContextMenu = true }
@@ -672,3 +762,11 @@ fun JobButtons(
         }
     }
 } 
+
+// --- Calendar View Config ---
+data class CalendarViewConfig(
+    val hourHeight: Dp = 40.dp,
+    val minEventHeight: Dp = 40.dp
+)
+
+val calendarConfig = CalendarViewConfig() 
