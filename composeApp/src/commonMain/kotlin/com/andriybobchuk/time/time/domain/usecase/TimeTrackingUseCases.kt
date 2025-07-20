@@ -103,4 +103,12 @@ class DeleteTimeBlockUseCase(
     suspend operator fun invoke(id: Int) {
         repository.deleteTimeBlock(id)
     }
+}
+
+class UpsertTimeBlockUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(timeBlock: TimeBlock) {
+        repository.upsertTimeBlock(timeBlock)
+    }
 } 

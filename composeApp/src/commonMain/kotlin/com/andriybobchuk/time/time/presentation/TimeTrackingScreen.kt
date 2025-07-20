@@ -14,10 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,7 +52,9 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
+import com.andriybobchuk.time.core.presentation.Icons
 import com.andriybobchuk.time.time.data.TimeDataSource
+import com.andriybobchuk.time.time.domain.Job
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +79,16 @@ fun TimeTrackingScreen(
                 }
             )
         },
-        bottomBar = { bottomNavbar() }
+        bottomBar = { bottomNavbar() },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    viewModel.onAction(TimeTrackingAction.ShowAddSheet)
+                }
+            ) {
+                Icons.AddIcon()
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -92,6 +109,9 @@ fun TimeTrackingScreen(
                         timeBlock = timeBlock,
                         onDelete = {
                             viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(timeBlock.id))
+                        },
+                        onEdit = {
+                            viewModel.onAction(TimeTrackingAction.EditTimeBlock(timeBlock))
                         }
                     )
                 }
@@ -116,6 +136,33 @@ fun TimeTrackingScreen(
                 }
             )
         }
+    }
+    
+    // Edit Time Block Bottom Sheet
+    if (state.showEditSheet && state.editingTimeBlock != null) {
+        EditTimeBlockSheet(
+            timeBlock = state.editingTimeBlock!!,
+            jobs = state.jobs,
+            onDismiss = {
+                viewModel.onAction(TimeTrackingAction.HideEditSheet)
+            },
+            onSave = { updatedTimeBlock ->
+                viewModel.onAction(TimeTrackingAction.UpdateTimeBlock(updatedTimeBlock))
+            }
+        )
+    }
+    
+    // Add Time Block Bottom Sheet
+    if (state.showAddSheet) {
+        AddTimeBlockSheet(
+            jobs = state.jobs,
+            onDismiss = {
+                viewModel.onAction(TimeTrackingAction.HideAddSheet)
+            },
+            onSave = { jobId, startTime, endTime ->
+                viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime))
+            }
+        )
     }
 }
 
@@ -168,7 +215,8 @@ fun DateSelectorInTopBar(
 @Composable
 fun TimeBlockCard(
     timeBlock: TimeBlock,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     // Get job color from TimeDataSource
     val jobColor = remember(timeBlock.jobId) {
@@ -176,8 +224,16 @@ fun TimeBlockCard(
         job?.color?.let { Color(it) }
     }?:Color(0xFF808080)
     
+    var showContextMenu by remember { mutableStateOf(false) }
+    
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { showContextMenu = true }
+                )
+            },
         colors = CardDefaults.cardColors(
             containerColor = jobColor
         )
@@ -189,27 +245,26 @@ fun TimeBlockCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row {
-                Row {
-                    Text(
-                        text = timeBlock.jobName,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = DateTimeUtils.formatDuration(timeBlock.getDurationInHours()),
-                        fontSize = 14.sp
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                val endTime = timeBlock.endTime?.let { endTime ->
-                    DateTimeUtils.formatTime(endTime)
-                }
+            Column {
                 Text(
-                    text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${endTime?:"In Progress"}",
+                    text = timeBlock.jobName,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Duration: ${DateTimeUtils.formatDuration(timeBlock.getDurationInHours())}",
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "Start: ${DateTimeUtils.formatTime(timeBlock.startTime)}",
                     fontSize = 12.sp
                 )
+                timeBlock.endTime?.let { endTime ->
+                    Text(
+                        text = "End: ${DateTimeUtils.formatTime(endTime)}",
+                        fontSize = 12.sp
+                    )
+                }
             }
 
             // Job color indicator
@@ -220,6 +275,275 @@ fun TimeBlockCard(
                     .background(jobColor)
             )
         }
+    }
+    
+    // Context menu
+    DropdownMenu(
+        expanded = showContextMenu,
+        onDismissRequest = { showContextMenu = false }
+    ) {
+        DropdownMenuItem(
+            text = { Text("Edit") },
+            onClick = {
+                onEdit()
+                showContextMenu = false
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("Delete") },
+            onClick = {
+                onDelete()
+                showContextMenu = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditTimeBlockSheet(
+    timeBlock: TimeBlock,
+    jobs: List<Job>,
+    onDismiss: () -> Unit,
+    onSave: (TimeBlock) -> Unit
+) {
+    var selectedJobId by remember { mutableStateOf(timeBlock.jobId) }
+    var startTimeText by remember { mutableStateOf(DateTimeUtils.formatTime(timeBlock.startTime)) }
+    var endTimeText by remember { mutableStateOf(timeBlock.endTime?.let { DateTimeUtils.formatTime(it) } ?: "") }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Job selection
+            var jobExpanded by remember { mutableStateOf(false) }
+            val selectedJob = jobs.find { it.id == selectedJobId }
+
+            Text("Edit Time Block")
+            Text("Project", fontWeight = FontWeight.Bold)
+            Box {
+                Button(
+                    onClick = { jobExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text(
+                        text = selectedJob?.name ?: "Select Project",
+                        color = Color.Black
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = jobExpanded,
+                    onDismissRequest = { jobExpanded = false }
+                ) {
+                    jobs.forEach { job ->
+                        DropdownMenuItem(
+                            text = { Text(job.name) },
+                            onClick = {
+                                selectedJobId = job.id
+                                jobExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Start time
+            Text("Start Time", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = startTimeText,
+                onValueChange = { startTimeText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("HH:MM") }
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // End time
+            Text("End Time", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = endTimeText,
+                onValueChange = { endTimeText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("HH:MM") }
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancel")
+                }
+                
+                Button(
+                    onClick = {
+                        // Parse time and create updated time block
+                        val startTime = parseTimeString(startTimeText, timeBlock.startTime.date)
+                        val endTime = if (endTimeText.isNotEmpty()) parseTimeString(endTimeText, timeBlock.startTime.date) else null
+                        
+                        if (startTime != null) {
+                            val updatedTimeBlock = timeBlock.copy(
+                                jobId = selectedJobId,
+                                jobName = selectedJob?.name ?: timeBlock.jobName,
+                                startTime = startTime,
+                                endTime = endTime
+                            )
+                            onSave(updatedTimeBlock)
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Save")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTimeBlockSheet(
+    jobs: List<Job>,
+    onDismiss: () -> Unit,
+    onSave: (String, kotlinx.datetime.LocalDateTime, kotlinx.datetime.LocalDateTime) -> Unit
+) {
+    var selectedJobId by remember { mutableStateOf("") }
+    var startTimeText by remember { mutableStateOf("") }
+    var endTimeText by remember { mutableStateOf("") }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Job selection
+            var jobExpanded by remember { mutableStateOf(false) }
+            val selectedJob = jobs.find { it.id == selectedJobId }
+
+            Text("Add Time Block")
+            Text("Project", fontWeight = FontWeight.Bold)
+            Box {
+                Button(
+                    onClick = { jobExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Text(
+                        text = selectedJob?.name ?: "Select Project",
+                        color = Color.Black
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = jobExpanded,
+                    onDismissRequest = { jobExpanded = false }
+                ) {
+                    jobs.forEach { job ->
+                        DropdownMenuItem(
+                            text = { Text(job.name) },
+                            onClick = {
+                                selectedJobId = job.id
+                                jobExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Start time
+            Text("Start Time", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = startTimeText,
+                onValueChange = { startTimeText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("HH:MM") }
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // End time
+            Text("End Time", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = endTimeText,
+                onValueChange = { endTimeText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("HH:MM") }
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancel")
+                }
+                
+                Button(
+                    onClick = {
+                        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        val startTime = parseTimeString(startTimeText, currentDate)
+                        val endTime = parseTimeString(endTimeText, currentDate)
+                        
+                        if (startTime != null && endTime != null && selectedJobId.isNotEmpty()) {
+                            onSave(selectedJobId, startTime, endTime)
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Save")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+private fun parseTimeString(timeString: String, date: kotlinx.datetime.LocalDate): kotlinx.datetime.LocalDateTime? {
+    return try {
+        val parts = timeString.split(":")
+        if (parts.size == 2) {
+            val hour = parts[0].toInt()
+            val minute = parts[1].toInt()
+            if (hour in 0..23 && minute in 0..59) {
+                kotlinx.datetime.LocalDateTime(date, kotlinx.datetime.LocalTime(hour, minute))
+            } else null
+        } else null
+    } catch (e: Exception) {
+        null
     }
 }
 

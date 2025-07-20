@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -64,7 +65,16 @@ fun AnalyticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Analytics") }
+                title = { Text("Analytics") },
+                actions = {
+                    // Week selector in top bar
+                    WeekSelectorInTopBar(
+                        selectedWeekStart = state.selectedWeekStart,
+                        onWeekSelected = { weekStart ->
+                            viewModel.onAction(AnalyticsAction.SelectWeek(weekStart))
+                        }
+                    )
+                }
             )
         },
         bottomBar = { bottomNavbar() }
@@ -74,13 +84,6 @@ fun AnalyticsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Week selector
-            WeekSelector(
-                selectedWeekStart = state.selectedWeekStart,
-                onWeekSelected = { weekStart ->
-                    viewModel.onAction(AnalyticsAction.SelectWeek(weekStart))
-                }
-            )
 
             // Analytics content
             LazyColumn(
@@ -134,12 +137,11 @@ fun AnalyticsScreen(
 }
 
 @Composable
-fun WeekSelector(
+fun WeekSelectorInTopBar(
     selectedWeekStart: LocalDate,
     onWeekSelected: (LocalDate) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // Simple date formatting without DateTimeFormat
     
     // Generate last 4 weeks for dropdown
     val weekOptions = remember {
@@ -150,16 +152,19 @@ fun WeekSelector(
         }.reversed()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
+    Box {
         Button(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth()
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.White
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black)
         ) {
-            Text("Week of: ${DateTimeUtils.formatWeekRange(selectedWeekStart)}")
+            Text(
+                text = DateTimeUtils.formatWeekRange(selectedWeekStart),
+                color = Color.Black
+            )
         }
 
         DropdownMenu(
@@ -167,13 +172,13 @@ fun WeekSelector(
             onDismissRequest = { expanded = false }
         ) {
             weekOptions.forEach { weekStart ->
-                            DropdownMenuItem(
-                text = { Text("Week of: ${DateTimeUtils.formatWeekRange(weekStart)}") },
-                onClick = {
-                    onWeekSelected(weekStart)
-                    expanded = false
-                }
-            )
+                DropdownMenuItem(
+                    text = { Text("Week of: ${DateTimeUtils.formatWeekRange(weekStart)}") },
+                    onClick = {
+                        onWeekSelected(weekStart)
+                        expanded = false
+                    }
+                )
             }
         }
     }

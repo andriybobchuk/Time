@@ -16,7 +16,10 @@ data class TimeTrackingState(
     val jobs: List<Job> = emptyList(),
     val dailySummary: DailySummary? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showEditSheet: Boolean = false,
+    val editingTimeBlock: TimeBlock? = null,
+    val showAddSheet: Boolean = false
 )
 
 data class AnalyticsState(
@@ -31,6 +34,12 @@ sealed interface TimeTrackingAction {
     data object StopTracking : TimeTrackingAction
     data class SelectDate(val date: LocalDate) : TimeTrackingAction
     data class DeleteTimeBlock(val id: Int) : TimeTrackingAction
+    data class EditTimeBlock(val timeBlock: TimeBlock) : TimeTrackingAction
+    data object ShowAddSheet : TimeTrackingAction
+    data object HideEditSheet : TimeTrackingAction
+    data object HideAddSheet : TimeTrackingAction
+    data class UpdateTimeBlock(val timeBlock: TimeBlock) : TimeTrackingAction
+    data class AddTimeBlock(val jobId: String, val startTime: kotlinx.datetime.LocalDateTime, val endTime: kotlinx.datetime.LocalDateTime) : TimeTrackingAction
 }
 
 sealed interface AnalyticsAction {

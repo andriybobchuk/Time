@@ -56,6 +56,7 @@ val sharedModule = module {
     singleOf(::GetDailySummaryUseCase)
     singleOf(::GetWeeklyAnalyticsUseCase)
     singleOf(::DeleteTimeBlockUseCase)
+    singleOf(::UpsertTimeBlockUseCase)
 
     // ViewModels
     viewModelOf(::AccountViewModel)

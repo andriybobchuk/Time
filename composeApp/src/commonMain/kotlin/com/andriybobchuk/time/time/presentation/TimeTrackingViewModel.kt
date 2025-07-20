@@ -2,6 +2,7 @@ package com.andriybobchuk.time.time.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.andriybobchuk.time.time.domain.TimeBlock
 import com.andriybobchuk.time.time.domain.usecase.DeleteTimeBlockUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetActiveTimeBlockUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetDailySummaryUseCase
@@ -9,6 +10,7 @@ import com.andriybobchuk.time.time.domain.usecase.GetJobsUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetTimeBlocksUseCase
 import com.andriybobchuk.time.time.domain.usecase.StartTimeTrackingUseCase
 import com.andriybobchuk.time.time.domain.usecase.StopTimeTrackingUseCase
+import com.andriybobchuk.time.time.domain.usecase.UpsertTimeBlockUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +31,8 @@ class TimeTrackingViewModel(
     private val getDailySummaryUseCase: GetDailySummaryUseCase,
     private val startTimeTrackingUseCase: StartTimeTrackingUseCase,
     private val stopTimeTrackingUseCase: StopTimeTrackingUseCase,
-    private val deleteTimeBlockUseCase: DeleteTimeBlockUseCase
+    private val deleteTimeBlockUseCase: DeleteTimeBlockUseCase,
+    private val upsertTimeBlockUseCase: UpsertTimeBlockUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TimeTrackingState())
@@ -57,6 +60,12 @@ class TimeTrackingViewModel(
             is TimeTrackingAction.StopTracking -> stopTracking()
             is TimeTrackingAction.SelectDate -> selectDate(action.date)
             is TimeTrackingAction.DeleteTimeBlock -> deleteTimeBlock(action.id)
+            is TimeTrackingAction.EditTimeBlock -> showEditSheet(action.timeBlock)
+            is TimeTrackingAction.ShowAddSheet -> showAddSheet()
+            is TimeTrackingAction.HideEditSheet -> hideEditSheet()
+            is TimeTrackingAction.HideAddSheet -> hideAddSheet()
+            is TimeTrackingAction.UpdateTimeBlock -> updateTimeBlock(action.timeBlock)
+            is TimeTrackingAction.AddTimeBlock -> addTimeBlock(action.jobId, action.startTime, action.endTime)
         }
     }
 
@@ -148,6 +157,53 @@ class TimeTrackingViewModel(
         viewModelScope.launch {
             try {
                 deleteTimeBlockUseCase(id)
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+    
+    private fun showEditSheet(timeBlock: TimeBlock) {
+        _state.update { it.copy(showEditSheet = true, editingTimeBlock = timeBlock) }
+    }
+    
+    private fun showAddSheet() {
+        _state.update { it.copy(showAddSheet = true) }
+    }
+    
+    private fun hideEditSheet() {
+        _state.update { it.copy(showEditSheet = false, editingTimeBlock = null) }
+    }
+    
+    private fun hideAddSheet() {
+        _state.update { it.copy(showAddSheet = false) }
+    }
+    
+    private fun updateTimeBlock(timeBlock: TimeBlock) {
+        viewModelScope.launch {
+            try {
+                upsertTimeBlockUseCase(timeBlock)
+                hideEditSheet()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+    
+    private fun addTimeBlock(jobId: String, startTime: kotlinx.datetime.LocalDateTime, endTime: kotlinx.datetime.LocalDateTime) {
+        viewModelScope.launch {
+            try {
+                val job = getJobsUseCase().find { it.id == jobId }
+                if (job != null) {
+                    val timeBlock = TimeBlock(
+                        jobId = jobId,
+                        jobName = job.name,
+                        startTime = startTime,
+                        endTime = endTime
+                    )
+                    upsertTimeBlockUseCase(timeBlock)
+                    hideAddSheet()
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message) }
             }
