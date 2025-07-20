@@ -100,45 +100,11 @@ fun AnalyticsScreen(
             ) {
                 if (state.weeklyAnalytics != null) {
                     item {
-                        // Convert job analytics to pie chart data
-                        val pieChartData = state.weeklyAnalytics!!.jobBreakdown.values.map { jobAnalytics ->
-                            val jobColor = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
-                            PieChartData(
-                                label = jobAnalytics.jobName,
-                                value = jobAnalytics.totalHours,
-                                color = jobColor,
-                                percentage = jobAnalytics.percentage
-                            )
-                        }
-                        
-                        PieChart(
-                            data = pieChartData,
-                            totalValue = state.weeklyAnalytics!!.totalHours,
-                            averageValue = state.weeklyAnalytics!!.averageDailyHours
-                        )
+                        JobBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!)
                     }
                     
                     item {
-                        // Convert daily summaries to bar chart data
-                        val barChartData = state.weeklyAnalytics!!.dailySummaries.map { dailySummary ->
-                            val jobData = dailySummary.jobBreakdown.values.map { jobSummary ->
-                                val jobColor = TimeDataSource.jobs.find { it.id == jobSummary.jobId }?.color?.let { Color(it) } ?: Color.Gray
-                                BarChartData(
-                                    label = jobSummary.jobName,
-                                    value = jobSummary.totalHours,
-                                    color = jobColor,
-                                    percentage = jobSummary.percentage
-                                )
-                            }
-                            
-                            DailyBarData(
-                                date = DateTimeUtils.formatDate(dailySummary.date),
-                                totalHours = dailySummary.totalHours,
-                                jobData = jobData
-                            )
-                        }
-                        
-                        BarChart(data = barChartData)
+                        DailyBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!)
                     }
                 }
             }
@@ -190,6 +156,94 @@ fun WeekSelectorInTopBar(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Job Breakdown",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Convert job analytics to pie chart data
+            val pieChartData = weeklyAnalytics.jobBreakdown.values.map { jobAnalytics ->
+                val jobColor = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                PieChartData(
+                    label = jobAnalytics.jobName,
+                    value = jobAnalytics.totalHours,
+                    color = jobColor,
+                    percentage = jobAnalytics.percentage
+                )
+            }
+            
+            PieChart(
+                data = pieChartData,
+                totalValue = weeklyAnalytics.totalHours,
+                averageValue = weeklyAnalytics.averageDailyHours
+            )
+        }
+    }
+}
+
+@Composable
+fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Daily Breakdown",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Convert daily summaries to bar chart data
+            val barChartData = weeklyAnalytics.dailySummaries.map { dailySummary ->
+                val jobData = dailySummary.jobBreakdown.values.map { jobSummary ->
+                    val jobColor = TimeDataSource.jobs.find { it.id == jobSummary.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                    BarChartData(
+                        label = jobSummary.jobName,
+                        value = jobSummary.totalHours,
+                        color = jobColor,
+                        percentage = jobSummary.percentage
+                    )
+                }
+                
+                DailyBarData(
+                    date = DateTimeUtils.formatDate(dailySummary.date),
+                    totalHours = dailySummary.totalHours,
+                    jobData = jobData
+                )
+            }
+            
+            BarChart(data = barChartData)
         }
     }
 }
