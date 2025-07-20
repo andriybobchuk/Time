@@ -45,7 +45,7 @@ data class TimeBlock(
 data class Job(
     val id: String,
     val name: String,
-    val color: Int
+    val color: Long
 )
 
 data class DailySummary(

@@ -7,12 +7,12 @@ object TimeDataSource {
         Job(
             id = "rivian",
             name = "Rivian",
-            color = 0xFBCF6C
+            color = 0xFFFBCF6C
         ),
         Job(
             id = "plato",
             name = "Plato",
-            color = 0x6CFB95
+            color = 0xFF6CFB95
         )
     )
 } 
