@@ -100,10 +100,6 @@ fun AnalyticsScreen(
             ) {
                 if (state.weeklyAnalytics != null) {
                     item {
-                        WeeklySummaryCard(analytics = state.weeklyAnalytics!!)
-                    }
-                    
-                    item {
                         // Convert job analytics to pie chart data
                         val pieChartData = state.weeklyAnalytics!!.jobBreakdown.values.map { jobAnalytics ->
                             val jobColor = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
@@ -197,46 +193,3 @@ fun WeekSelectorInTopBar(
         }
     }
 }
-
-@Composable
-fun WeeklySummaryCard(analytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Blue.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Weekly Summary",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Total Hours: ${DateTimeUtils.formatDuration(analytics.totalHours)}",
-                fontSize = 16.sp
-            )
-            
-            Text(
-                text = "Average Daily: ${DateTimeUtils.formatDuration(analytics.averageDailyHours)}",
-                fontSize = 16.sp
-            )
-            
-            Text(
-                text = "Period: ${DateTimeUtils.formatDateWithYear(analytics.weekStart)} - ${DateTimeUtils.formatDateWithYear(analytics.weekEnd)}",
-                fontSize = 14.sp
-            )
-        }
-    }
-}
-
-
-
- 
