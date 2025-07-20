@@ -46,6 +46,11 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
+import com.andriybobchuk.time.core.presentation.PieChart
+import com.andriybobchuk.time.core.presentation.BarChart
+import com.andriybobchuk.time.core.presentation.PieChartData
+import com.andriybobchuk.time.core.presentation.BarChartData
+import com.andriybobchuk.time.core.presentation.DailyBarData
 import com.andriybobchuk.time.time.data.TimeDataSource
 
 private fun getWeekStart(date: LocalDate): LocalDate {
@@ -99,36 +104,45 @@ fun AnalyticsScreen(
                     }
                     
                     item {
-                        Text(
-                            text = "Job Breakdown",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    items(state.weeklyAnalytics!!.jobBreakdown.values.toList()) { jobAnalytics ->
-                        JobAnalyticsCard(jobAnalytics = jobAnalytics)
-                    }
-                    
-                    item {
-                        Text(
-                            text = "Daily Breakdown",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    item {
-                        androidx.compose.foundation.lazy.LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
-                        ) {
-                            items(state.weeklyAnalytics!!.dailySummaries) { dailySummary ->
-                                DailySummaryCardHorizontal(summary = dailySummary)
-                            }
+                        // Convert job analytics to pie chart data
+                        val pieChartData = state.weeklyAnalytics!!.jobBreakdown.values.map { jobAnalytics ->
+                            val jobColor = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                            PieChartData(
+                                label = jobAnalytics.jobName,
+                                value = jobAnalytics.totalHours,
+                                color = jobColor,
+                                percentage = jobAnalytics.percentage
+                            )
                         }
+                        
+                        PieChart(
+                            data = pieChartData,
+                            totalValue = state.weeklyAnalytics!!.totalHours,
+                            averageValue = state.weeklyAnalytics!!.averageDailyHours
+                        )
+                    }
+                    
+                    item {
+                        // Convert daily summaries to bar chart data
+                        val barChartData = state.weeklyAnalytics!!.dailySummaries.map { dailySummary ->
+                            val jobData = dailySummary.jobBreakdown.values.map { jobSummary ->
+                                val jobColor = TimeDataSource.jobs.find { it.id == jobSummary.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                                BarChartData(
+                                    label = jobSummary.jobName,
+                                    value = jobSummary.totalHours,
+                                    color = jobColor,
+                                    percentage = jobSummary.percentage
+                                )
+                            }
+                            
+                            DailyBarData(
+                                date = DateTimeUtils.formatDate(dailySummary.date),
+                                totalHours = dailySummary.totalHours,
+                                jobData = jobData
+                            )
+                        }
+                        
+                        BarChart(data = barChartData)
                     }
                 }
             }
@@ -223,141 +237,6 @@ fun WeeklySummaryCard(analytics: com.andriybobchuk.time.time.domain.WeeklyAnalyt
     }
 }
 
-@Composable
-fun JobAnalyticsCard(jobAnalytics: com.andriybobchuk.time.time.domain.JobAnalytics) {
-    // Get job color from TimeDataSource
-    val jobColor = remember(jobAnalytics.jobId) {
-        val job = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }
-        job?.color?.let { Color(it) }
-    }?:Color(0x6CFB95)
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(jobColor)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = jobAnalytics.jobName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Total: ${DateTimeUtils.formatDuration(jobAnalytics.totalHours)}",
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Daily Avg: ${DateTimeUtils.formatDuration(jobAnalytics.averageDailyHours)}",
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "${jobAnalytics.percentage}% of total",
-                    fontSize = 14.sp
-                )
-            }
 
-            // Job color indicator
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(jobColor)
-            )
-        }
-    }
-}
 
-@Composable
-fun DailySummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Gray.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "${DateTimeUtils.formatDate(summary.date)} - ${DateTimeUtils.formatDuration(summary.totalHours)}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            summary.jobBreakdown.values.toList().forEach { jobSummary ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "${jobSummary.percentage}%",
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DailySummaryCardHorizontal(summary: com.andriybobchuk.time.time.domain.DailySummary) {
-    Card(
-        modifier = Modifier.width(140.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Gray.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = DateTimeUtils.formatDate(summary.date),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Text(
-                text = DateTimeUtils.formatDuration(summary.totalHours),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Blue
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            summary.jobBreakdown.values.toList().forEach { jobSummary ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = jobSummary.jobName,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "${jobSummary.percentage}%",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-} 
+ 
