@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.andriybobchuk.time.core.presentation.BarChart
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -47,7 +48,6 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
 import com.andriybobchuk.time.core.presentation.PieChart
-import com.andriybobchuk.time.core.presentation.BarChart
 import com.andriybobchuk.time.core.presentation.PieChartData
 import com.andriybobchuk.time.core.presentation.BarChartData
 import com.andriybobchuk.time.core.presentation.DailyBarData
