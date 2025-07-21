@@ -73,7 +73,7 @@ fun AnalyticsScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         topBar = {
             Toolbars.Primary(

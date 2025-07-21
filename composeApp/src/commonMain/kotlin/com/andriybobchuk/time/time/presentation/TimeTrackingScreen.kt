@@ -78,7 +78,7 @@ fun TimeTrackingScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         topBar = {
             Toolbars.Primary(
@@ -95,34 +95,31 @@ fun TimeTrackingScreen(
             )
         },
         bottomBar = { bottomNavbar() },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    viewModel.onAction(TimeTrackingAction.ShowAddSheet)
-                },
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    modifier = Modifier.size(18.dp),
-                    painter = Icons.AddIcon(),
-                    contentDescription = ""
-                )
-
-            }
-        }
+        // floatingActionButton = {
+        //     FloatingActionButton(
+        //         onClick = {
+        //             viewModel.onAction(TimeTrackingAction.ShowAddSheet)
+        //         },
+        //         containerColor = Color.Black,
+        //         contentColor = Color.White
+        //     ) {
+        //         Icon(
+        //             modifier = Modifier.size(18.dp),
+        //             painter = Icons.AddIcon(),
+        //             contentDescription = ""
+        //         )
+        //     }
+        // },
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-
-            // Simple calendar view
+            // Calendar view (scrollable)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
@@ -153,7 +150,8 @@ fun TimeTrackingScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(calendarConfig.hourHeight),
+                                               // .height(calendarConfig.hourHeight),
+                                                .height(20.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
@@ -196,7 +194,8 @@ fun TimeTrackingScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(calendarConfig.hourHeight),
+                                       // .height(calendarConfig.hourHeight),
+                                        .height(20.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
@@ -215,17 +214,43 @@ fun TimeTrackingScreen(
                             }
                         }
                     }
+                    item {
+                        // Calculate summary data
+                        val totalHours = sortedBlocks.sumOf { it.getDurationInHours() }
+                        val jobBreakdown = sortedBlocks
+                            .groupBy { it.jobId }
+                            .mapValues { (jobId, blocks) ->
+                                val jobHours = blocks.sumOf { it.getDurationInHours() }
+                                val percentage = if (totalHours > 0) ((jobHours / totalHours) * 100).toInt() else 0
+                                com.andriybobchuk.time.time.domain.JobSummary(
+                                    jobId = jobId,
+                                    jobName = blocks.first().jobName,
+                                    totalHours = jobHours,
+                                    percentage = percentage.toDouble()
+                                )
+                            }
+                        
+                        val summary = com.andriybobchuk.time.time.domain.DailySummary(
+                            date = state.selectedDate,
+                            blocks = sortedBlocks,
+                            totalHours = totalHours,
+                            jobBreakdown = jobBreakdown
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        TotalSummaryCard(summary = summary)
+                        Spacer(Modifier.height(70.dp))
+                    }
                 } else {
                     // Empty state
                     item {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxSize()
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No time blocks for this day",
+                                text = "No time blocks for this day, yet",
                                 color = MaterialTheme.colorScheme.secondaryTextColor(),
                                 fontSize = 16.sp
                             )
@@ -233,8 +258,7 @@ fun TimeTrackingScreen(
                     }
                 }
             }
-
-            // Job buttons
+            // Floating JobButtons at the bottom
             JobButtons(
                 jobs = state.jobs,
                 activeTimeBlock = state.activeTimeBlock,
@@ -243,7 +267,9 @@ fun TimeTrackingScreen(
                 },
                 onStopTracking = {
                     viewModel.onAction(TimeTrackingAction.StopTracking)
-                }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
             )
         }
     }
@@ -340,6 +366,8 @@ fun TimeBlockCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .padding(start = 50.dp)
+            .padding(vertical = 2.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { showContextMenu = true }
@@ -353,7 +381,7 @@ fun TimeBlockCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 14.dp),
+                .padding(vertical = 4.dp, horizontal = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -675,7 +703,7 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "Total: ${DateTimeUtils.formatDuration(summary.totalHours)}",
+                text = "${DateTimeUtils.formatDuration(summary.totalHours)} in total",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.textColor()
@@ -709,12 +737,13 @@ fun JobButtons(
     jobs: List<com.andriybobchuk.time.time.domain.Job>,
     activeTimeBlock: TimeBlock?,
     onStartTracking: (String) -> Unit,
-    onStopTracking: () -> Unit
+    onStopTracking: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(vertical = 10.dp, horizontal = 5.dp)
     ) {
         if (activeTimeBlock != null) {
             // Stop button
@@ -734,7 +763,7 @@ fun JobButtons(
             // Job buttons
             Row(
                 modifier = Modifier.wrapContentWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 jobs.forEach { job ->
                     Button(
