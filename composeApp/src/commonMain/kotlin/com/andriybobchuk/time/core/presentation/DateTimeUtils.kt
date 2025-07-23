@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.plus
+import kotlin.math.roundToInt
 
 object DateTimeUtils {
     
@@ -84,6 +85,10 @@ object DateTimeUtils {
                 if (minutes == 0) "${wholeHours}h" else "${wholeHours}h ${minutes}m"
             }
         }
+    }
+    
+    fun formatFullHours(hours: Double): String {
+        return "${hours.roundToInt()}h"
     }
     
     fun formatWeekRange(weekStart: LocalDate): String {

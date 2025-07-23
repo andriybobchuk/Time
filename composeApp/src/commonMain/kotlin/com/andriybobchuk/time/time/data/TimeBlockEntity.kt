@@ -10,5 +10,6 @@ data class TimeBlockEntity(
     val jobName: String,
     val startTime: String, // ISO string format
     val endTime: String?, // ISO string format
-    val duration: Long? // in milliseconds
+    val duration: Long?, // in milliseconds
+    val effectiveness: String? = null // new field for persistence
 ) 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 class DefaultTimeRepositoryImpl(
@@ -86,17 +87,19 @@ class DefaultTimeRepositoryImpl(
     }
 
     override suspend fun getWeeklyAnalytics(weekStart: LocalDate): WeeklyAnalytics {
-        val weekEnd = weekStart.plus(kotlinx.datetime.DatePeriod(days = 6)) // 7 days total (0-6)
-        val blocks = timeBlockDao.getByDateRange(weekStart.toString(), weekEnd.toString()).first()
+        // Treat weekStart as the END date (selected date or today)
+        val endDate = weekStart
+        val startDate = endDate.minus(kotlinx.datetime.DatePeriod(days = 6)) // last 7 days
+        val blocks = timeBlockDao.getByDateRange(startDate.toString(), endDate.toString()).first()
             .map { it.toDomain() }
-        
+
         val dailySummaries = mutableListOf<DailySummary>()
         for (i in 0 until 7) {
-            val date = weekStart.plus(kotlinx.datetime.DatePeriod(days = i))
-            val dailyBlocks = blocks.filter { 
-                it.startTime.date == date 
+            val date = startDate.plus(kotlinx.datetime.DatePeriod(days = i))
+            val dailyBlocks = blocks.filter {
+                it.startTime.date == date
             }
-            
+
             val jobBreakdown = dailyBlocks.groupBy { it.jobId }
                 .mapValues { (jobId, blocks) ->
                     val job = getJobById(jobId)!!
@@ -108,16 +111,16 @@ class DefaultTimeRepositoryImpl(
                         percentage = 0.0
                     )
                 }
-            
+
             val totalHours = dailyBlocks.sumOf { it.getDurationInHours() }
-            
+
             // Calculate percentages
             val updatedJobBreakdown = jobBreakdown.mapValues { (_, summary) ->
                 summary.copy(
                     percentage = if (totalHours > 0) ((summary.totalHours / totalHours) * 100).toInt().toDouble() else 0.0
                 )
             }
-            
+
             dailySummaries.add(DailySummary(
                 date = date,
                 blocks = dailyBlocks,
@@ -125,10 +128,10 @@ class DefaultTimeRepositoryImpl(
                 jobBreakdown = updatedJobBreakdown
             ))
         }
-        
+
         val totalHours = blocks.sumOf { it.getDurationInHours() }
         val averageDailyHours = totalHours / 7
-        
+
         val jobBreakdown = blocks.groupBy { it.jobId }
             .mapValues { (jobId, blocks) ->
                 val job = getJobById(jobId)!!
@@ -142,10 +145,10 @@ class DefaultTimeRepositoryImpl(
                     percentage = if (totalHours > 0) ((jobTotalHours / totalHours) * 100).toInt().toDouble() else 0.0
                 )
             }
-        
+
         return WeeklyAnalytics(
-            weekStart = weekStart,
-            weekEnd = weekEnd,
+            weekStart = startDate,
+            weekEnd = endDate,
             dailySummaries = dailySummaries,
             totalHours = totalHours,
             averageDailyHours = averageDailyHours,

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "daa042b16e4225dd5462cdfee9028dd0",
+    "identityHash": "0f7f31d3d04f904b5645997b9eab8276",
     "entities": [
       {
         "tableName": "TransactionEntity",
@@ -90,7 +90,7 @@
       },
       {
         "tableName": "time_blocks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `jobId` TEXT NOT NULL, `jobName` TEXT NOT NULL, `startTime` TEXT NOT NULL, `endTime` TEXT, `duration` INTEGER)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `jobId` TEXT NOT NULL, `jobName` TEXT NOT NULL, `startTime` TEXT NOT NULL, `endTime` TEXT, `duration` INTEGER, `effectiveness` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -125,6 +125,11 @@
             "fieldPath": "duration",
             "columnName": "duration",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "effectiveness",
+            "columnName": "effectiveness",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -137,7 +142,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'daa042b16e4225dd5462cdfee9028dd0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0f7f31d3d04f904b5645997b9eab8276')"
     ]
   }
 }

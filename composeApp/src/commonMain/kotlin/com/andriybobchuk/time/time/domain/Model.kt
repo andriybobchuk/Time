@@ -7,13 +7,19 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.toInstant
 
+enum class Effectiveness {
+    Productive,
+    Unproductive
+}
+
 data class TimeBlock(
     val id: Int = 0,
     val jobId: String,
     val jobName: String,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime? = null,
-    val duration: Long? = null // in milliseconds
+    val duration: Long? = null, // in milliseconds
+    val effectiveness: Effectiveness? = null // new field
 ) {
     fun isActive(): Boolean = endTime == null
     

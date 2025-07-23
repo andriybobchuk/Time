@@ -58,6 +58,7 @@ class TimeTrackingViewModel(
         when (action) {
             is TimeTrackingAction.StartTracking -> startTracking(action.jobId)
             is TimeTrackingAction.StopTracking -> stopTracking()
+            is TimeTrackingAction.StopTrackingWithEffectiveness -> stopTrackingWithEffectiveness(action.effectiveness)
             is TimeTrackingAction.SelectDate -> selectDate(action.date)
             is TimeTrackingAction.DeleteTimeBlock -> deleteTimeBlock(action.id)
             is TimeTrackingAction.EditTimeBlock -> showEditSheet(action.timeBlock)
@@ -145,6 +146,29 @@ class TimeTrackingViewModel(
                     }
                 }
             )
+        }
+    }
+
+    private fun stopTrackingWithEffectiveness(effectiveness: com.andriybobchuk.time.time.domain.Effectiveness) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            val activeBlock = state.value.activeTimeBlock
+            if (activeBlock == null) {
+                _state.update { it.copy(isLoading = false) }
+                return@launch
+            }
+            val endTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val updatedBlock = activeBlock.copy(
+                endTime = endTime,
+                duration = activeBlock.calculateDuration(),
+                effectiveness = effectiveness
+            )
+            try {
+                upsertTimeBlockUseCase(updatedBlock)
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message) }
+            }
         }
     }
 

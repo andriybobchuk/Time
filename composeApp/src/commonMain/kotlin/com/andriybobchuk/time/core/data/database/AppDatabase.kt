@@ -14,6 +14,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val timeBlockDao: TimeBlockDao
 
     companion object {
-        const val DB_NAME = "time.db"
+        const val DB_NAME = "time_debug_v2.db"
     }
 }

@@ -1,7 +1,9 @@
 package com.andriybobchuk.time.time.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,7 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.andriybobchuk.time.time.domain.TimeBlock
@@ -69,6 +74,7 @@ import com.andriybobchuk.time.core.presentation.textColor
 import com.andriybobchuk.time.time.data.TimeDataSource
 import com.andriybobchuk.time.time.domain.Job
 import androidx.compose.ui.unit.Dp
+import com.andriybobchuk.time.time.domain.Effectiveness
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -271,6 +277,18 @@ fun TimeTrackingScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
             )
+            // Effectiveness card for active time block
+            if (state.activeTimeBlock != null) {
+                EffectivenessCard(
+                    timeBlock = state.activeTimeBlock,
+                    onSelect = { effectiveness ->
+                        viewModel.onAction(TimeTrackingAction.StopTrackingWithEffectiveness(effectiveness))
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 80.dp)
+                )
+            }
         }
     }
     
@@ -360,9 +378,8 @@ fun TimeBlockCard(
         val job = TimeDataSource.jobs.find { it.id == timeBlock.jobId }
         job?.color?.let { Color(it) }
     }?:Color(0xFF808080)
-    
+    val isUnproductive = timeBlock.effectiveness == Effectiveness.Unproductive
     var showContextMenu by remember { mutableStateOf(false) }
-    
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -374,9 +391,14 @@ fun TimeBlockCard(
                 )
             },
         colors = CardDefaults.cardColors(
-            containerColor = jobColor.copy(alpha = 0.25f)
+            containerColor = if (isUnproductive) Color.Transparent else jobColor.copy(alpha = 0.25f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = if (isUnproductive) BorderStroke(
+            width = 1.dp,
+            color = jobColor,
+        ) else null,
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
@@ -386,6 +408,7 @@ fun TimeBlockCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row {
+                val textStyle = if (isUnproductive) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle.Default
                 Row {
                     Text(
                         text = timeBlock.jobName,
@@ -405,9 +428,11 @@ fun TimeBlockCard(
                     val end = timeBlock.endTime?.let { endTime ->
                         DateTimeUtils.formatTime(endTime)
                     }
+                    val text = if(isUnproductive) "Un" else "OK"
                     Text(
-                        text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
+                        text = "$text ${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
                         fontSize = 12.sp,
+                        textDecoration = TextDecoration.LineThrough,
                         color = MaterialTheme.colorScheme.secondaryTextColor()
                     )
                 }
@@ -740,27 +765,12 @@ fun JobButtons(
     onStopTracking: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp, horizontal = 5.dp)
-    ) {
-        if (activeTimeBlock != null) {
-            // Stop button
-            Button(
-                onClick = onStopTracking,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.buttonBackground()
-                )
-            ) {
-                Text(
-                    "Stop Tracking (${activeTimeBlock.jobName})",
-                    color = MaterialTheme.colorScheme.buttonTextColor()
-                )
-            }
-        } else {
-            // Job buttons
+    if (activeTimeBlock == null) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 5.dp)
+        ) {
             Row(
                 modifier = Modifier.wrapContentWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -799,3 +809,57 @@ data class CalendarViewConfig(
 )
 
 val calendarConfig = CalendarViewConfig() 
+
+@Composable
+fun EffectivenessCard(
+    timeBlock: TimeBlock?,
+    onSelect: (Effectiveness) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (timeBlock == null) return
+    Card(
+        modifier = modifier
+            .fillMaxWidth(0.95f),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Currently Tracking: ${timeBlock.jobName}",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.textColor()
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Stop tracking and mark this session as:",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.secondaryTextColor()
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = { onSelect(Effectiveness.Productive) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("Productive", color = Color.White)
+                }
+                Button(
+                    onClick = { onSelect(Effectiveness.Unproductive) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("Unproductive", color = Color.White)
+                }
+            }
+        }
+    }
+} 

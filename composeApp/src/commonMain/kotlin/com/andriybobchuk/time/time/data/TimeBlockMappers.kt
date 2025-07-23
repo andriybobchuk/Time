@@ -10,7 +10,8 @@ fun TimeBlockEntity.toDomain(): TimeBlock {
         jobName = jobName,
         startTime = LocalDateTime.parse(startTime),
         endTime = endTime?.let { LocalDateTime.parse(it) },
-        duration = duration
+        duration = duration,
+        effectiveness = effectiveness?.let { com.andriybobchuk.time.time.domain.Effectiveness.valueOf(it) }
     )
 }
 
@@ -21,6 +22,7 @@ fun TimeBlock.toEntity(): TimeBlockEntity {
         jobName = jobName,
         startTime = startTime.toString(),
         endTime = endTime?.toString(),
-        duration = duration
+        duration = duration,
+        effectiveness = effectiveness?.name
     )
 } 
