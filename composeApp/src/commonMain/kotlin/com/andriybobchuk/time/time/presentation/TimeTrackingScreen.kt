@@ -35,6 +35,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -90,12 +91,23 @@ fun TimeTrackingScreen(
             Toolbars.Primary(
                 title = "Time Blocks",
                 customContent = {
-                    DateSelectorInTopBar(
-                        selectedDate = state.selectedDate,
-                        onDateSelected = { date ->
-                            viewModel.onAction(TimeTrackingAction.SelectDate(date))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        DateSelectorInTopBar(
+                            selectedDate = state.selectedDate,
+                            onDateSelected = { date ->
+                                viewModel.onAction(TimeTrackingAction.SelectDate(date))
+                            }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowAddSheet) }) {
+                            Icon(
+                                modifier = Modifier.size(16.dp),
+                                painter = Icons.AddIcon(),
+                                contentDescription = "Add Time Block",
+                                tint = MaterialTheme.colorScheme.textColor()
+                            )
                         }
-                    )
+                    }
                 },
                 scrollBehavior = scrollBehavior
             )
@@ -244,7 +256,7 @@ fun TimeTrackingScreen(
                         )
                         Spacer(Modifier.height(16.dp))
                         TotalSummaryCard(summary = summary)
-                        Spacer(Modifier.height(70.dp))
+                        Spacer(Modifier.height(200.dp))
                     }
                 } else {
                     // Empty state
@@ -286,7 +298,7 @@ fun TimeTrackingScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 80.dp)
+                        .padding(horizontal = 10.dp, vertical = 10.dp)
                 )
             }
         }
@@ -313,8 +325,8 @@ fun TimeTrackingScreen(
             onDismiss = {
                 viewModel.onAction(TimeTrackingAction.HideAddSheet)
             },
-            onSave = { jobId, startTime, endTime ->
-                viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime))
+            onSave = { jobId, startTime, endTime, effectiveness ->
+                viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime, effectiveness))
             }
         )
     }
@@ -396,7 +408,7 @@ fun TimeBlockCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = if (isUnproductive) BorderStroke(
             width = 1.dp,
-            color = jobColor,
+            color = jobColor.copy(alpha = 0.25f),
         ) else null,
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -408,19 +420,22 @@ fun TimeBlockCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row {
-                val textStyle = if (isUnproductive) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle.Default
                 Row {
                     Text(
                         text = timeBlock.jobName,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.textColor()
+                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                            .textColor()
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text = DateTimeUtils.formatDuration(timeBlock.getDurationInHours()),
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.textColor()
+                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                            .textColor()
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -428,12 +443,12 @@ fun TimeBlockCard(
                     val end = timeBlock.endTime?.let { endTime ->
                         DateTimeUtils.formatTime(endTime)
                     }
-                    val text = if(isUnproductive) "Un" else "OK"
                     Text(
-                        text = "$text ${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
+                        text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
                         fontSize = 12.sp,
-                        textDecoration = TextDecoration.LineThrough,
-                        color = MaterialTheme.colorScheme.secondaryTextColor()
+                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                            .textColor()
                     )
                 }
             }
@@ -473,10 +488,12 @@ fun EditTimeBlockSheet(
     var selectedJobId by remember { mutableStateOf(timeBlock.jobId) }
     var startTimeText by remember { mutableStateOf(DateTimeUtils.formatTime(timeBlock.startTime)) }
     var endTimeText by remember { mutableStateOf(timeBlock.endTime?.let { DateTimeUtils.formatTime(it) } ?: "") }
-    
+    var selectedDate by remember { mutableStateOf(timeBlock.startTime.date) }
+    var effectiveness by remember { mutableStateOf(timeBlock.effectiveness) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.bottomSheetBackground()
+        containerColor = MaterialTheme.colorScheme.bottomSheetBackground(),
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -489,58 +506,80 @@ fun EditTimeBlockSheet(
 
             Text("Edit Time Block", color = MaterialTheme.colorScheme.textColor())
             Text("Project", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
-            Box {
-                Button(
-                    onClick = { jobExpanded = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.buttonBackground()
-                    )
-                ) {
-                    Text(
-                        text = selectedJob?.name ?: "Select Project",
-                        color = MaterialTheme.colorScheme.buttonTextColor()
-                    )
-                }
-                
-                DropdownMenu(
-                    expanded = jobExpanded,
-                    onDismissRequest = { jobExpanded = false }
-                ) {
-                    jobs.forEach { job ->
-                        DropdownMenuItem(
-                            text = { Text(job.name) },
-                            onClick = {
-                                selectedJobId = job.id
-                                jobExpanded = false
-                            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    Button(
+                        onClick = { jobExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.buttonBackground()
+                        )
+                    ) {
+                        Text(
+                            text = selectedJob?.name ?: "Select Project",
+                            color = MaterialTheme.colorScheme.buttonTextColor()
                         )
                     }
+                    DropdownMenu(
+                        expanded = jobExpanded,
+                        onDismissRequest = { jobExpanded = false }
+                    ) {
+                        jobs.forEach { job ->
+                            DropdownMenuItem(
+                                text = { Text(job.name) },
+                                onClick = {
+                                    selectedJobId = job.id
+                                    jobExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Box(Modifier.weight(1f)) {
+                    DatePickerField(selectedDate) { selectedDate = it }
                 }
             }
-            
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Start time
-            Text("Start Time", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = startTimeText,
-                onValueChange = { startTimeText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("HH:MM") }
-            )
-            
+            // Start and End Time
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Start Time", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = startTimeText,
+                        onValueChange = { startTimeText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("HH:MM") }
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("End Time", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = endTimeText,
+                        onValueChange = { endTimeText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("HH:MM") }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             
-            // End time
-            Text("End Time", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = endTimeText,
-                onValueChange = { endTimeText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("HH:MM") }
-            )
-            
+            // Effectiveness
+            Text("Effectiveness", fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { effectiveness = Effectiveness.Productive },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (effectiveness == Effectiveness.Productive) Color(0xFF4CAF50) else Color.LightGray
+                    )
+                ) { Text("Productive", color = Color.White) }
+                Button(
+                    onClick = { effectiveness = Effectiveness.Unproductive },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (effectiveness == Effectiveness.Unproductive) Color(0xFFD32F2F) else Color.LightGray
+                    )
+                ) { Text("Unproductive", color = Color.White) }
+            }
             Spacer(modifier = Modifier.height(24.dp))
             
             // Buttons
@@ -557,16 +596,16 @@ fun EditTimeBlockSheet(
                 
                 Button(
                     onClick = {
-                        // Parse time and create updated time block
-                        val startTime = parseTimeString(startTimeText, timeBlock.startTime.date)
-                        val endTime = if (endTimeText.isNotEmpty()) parseTimeString(endTimeText, timeBlock.startTime.date) else null
+                        val startTime = parseTimeString(startTimeText, selectedDate)
+                        val endTime = if (endTimeText.isNotEmpty()) parseTimeString(endTimeText, selectedDate) else null
                         
                         if (startTime != null) {
                             val updatedTimeBlock = timeBlock.copy(
                                 jobId = selectedJobId,
-                                jobName = selectedJob?.name ?: timeBlock.jobName,
+                                jobName = jobs.find { it.id == selectedJobId }?.name ?: timeBlock.jobName,
                                 startTime = startTime,
-                                endTime = endTime
+                                endTime = endTime,
+                                effectiveness = effectiveness
                             )
                             onSave(updatedTimeBlock)
                         }
@@ -590,15 +629,18 @@ fun EditTimeBlockSheet(
 fun AddTimeBlockSheet(
     jobs: List<Job>,
     onDismiss: () -> Unit,
-    onSave: (String, kotlinx.datetime.LocalDateTime, kotlinx.datetime.LocalDateTime) -> Unit
+    onSave: (String, kotlinx.datetime.LocalDateTime, kotlinx.datetime.LocalDateTime, Effectiveness?) -> Unit
 ) {
     var selectedJobId by remember { mutableStateOf("") }
     var startTimeText by remember { mutableStateOf("") }
     var endTimeText by remember { mutableStateOf("") }
-    
+    var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
+    var effectiveness by remember { mutableStateOf<Effectiveness?>(null) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.bottomSheetBackground()
+        containerColor = MaterialTheme.colorScheme.bottomSheetBackground(),
+        modifier = Modifier.fillMaxSize(1f)
     ) {
         Column(
             modifier = Modifier
@@ -611,58 +653,80 @@ fun AddTimeBlockSheet(
 
             Text("Add Time Block", color = MaterialTheme.colorScheme.textColor())
             Text("Project", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
-            Box {
-                Button(
-                    onClick = { jobExpanded = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.buttonBackground()
-                    )
-                ) {
-                    Text(
-                        text = selectedJob?.name ?: "Select Project",
-                        color = MaterialTheme.colorScheme.buttonTextColor()
-                    )
-                }
-                
-                DropdownMenu(
-                    expanded = jobExpanded,
-                    onDismissRequest = { jobExpanded = false }
-                ) {
-                    jobs.forEach { job ->
-                        DropdownMenuItem(
-                            text = { Text(job.name) },
-                            onClick = {
-                                selectedJobId = job.id
-                                jobExpanded = false
-                            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    Button(
+                        onClick = { jobExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.buttonBackground()
+                        )
+                    ) {
+                        Text(
+                            text = selectedJob?.name ?: "Select Project",
+                            color = MaterialTheme.colorScheme.buttonTextColor()
                         )
                     }
+                    DropdownMenu(
+                        expanded = jobExpanded,
+                        onDismissRequest = { jobExpanded = false }
+                    ) {
+                        jobs.forEach { job ->
+                            DropdownMenuItem(
+                                text = { Text(job.name) },
+                                onClick = {
+                                    selectedJobId = job.id
+                                    jobExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Box(Modifier.weight(1f)) {
+                    DatePickerField(selectedDate) { selectedDate = it }
                 }
             }
-            
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Start time
-            Text("Start Time", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = startTimeText,
-                onValueChange = { startTimeText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("HH:MM") }
-            )
-            
+            // Start and End Time
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Start Time", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = startTimeText,
+                        onValueChange = { startTimeText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("HH:MM") }
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("End Time", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = endTimeText,
+                        onValueChange = { endTimeText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("HH:MM") }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             
-            // End time
-            Text("End Time", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = endTimeText,
-                onValueChange = { endTimeText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("HH:MM") }
-            )
-            
+            // Effectiveness
+            Text("Effectiveness", fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { effectiveness = Effectiveness.Productive },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (effectiveness == Effectiveness.Productive) Color(0xFF4CAF50) else Color.LightGray
+                    )
+                ) { Text("Productive", color = Color.White) }
+                Button(
+                    onClick = { effectiveness = Effectiveness.Unproductive },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (effectiveness == Effectiveness.Unproductive) Color(0xFFD32F2F) else Color.LightGray
+                    )
+                ) { Text("Unproductive", color = Color.White) }
+            }
             Spacer(modifier = Modifier.height(24.dp))
             
             // Buttons
@@ -673,24 +737,19 @@ fun AddTimeBlockSheet(
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancel")
-                }
+                ) { Text("Cancel") }
                 
                 Button(
                     onClick = {
-                        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        val startTime = parseTimeString(startTimeText, currentDate)
-                        val endTime = parseTimeString(endTimeText, currentDate)
+                        val startTime = parseTimeString(startTimeText, selectedDate)
+                        val endTime = parseTimeString(endTimeText, selectedDate)
                         
                         if (startTime != null && endTime != null && selectedJobId.isNotEmpty()) {
-                            onSave(selectedJobId, startTime, endTime)
+                            onSave(selectedJobId, startTime, endTime, effectiveness)
                         }
                     },
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("Save")
-                }
+                ) { Text("Save") }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -819,26 +878,27 @@ fun EffectivenessCard(
     if (timeBlock == null) return
     Card(
         modifier = modifier
-            .fillMaxWidth(0.95f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+            .fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.cardBackground()
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        //border = BorderStroke(1.dp, Color.Black),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+           // horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Currently Tracking: ${timeBlock.jobName}",
+                text = "Tracking ${timeBlock.jobName}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.textColor()
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Stop tracking and mark this session as:",
+                text = "Complete this session as:",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.secondaryTextColor()
             )
@@ -848,17 +908,60 @@ fun EffectivenessCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelect(Effectiveness.Unproductive) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                   // border = BorderStroke(1.dp, Color.Black)
+                ) {
+                    Text("Unproductive", color = Color.Black)
+                }
+                Button(
+                    modifier = Modifier.weight(1f),
                     onClick = { onSelect(Effectiveness.Productive) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
                     Text("Productive", color = Color.White)
                 }
-                Button(
-                    onClick = { onSelect(Effectiveness.Unproductive) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-                ) {
-                    Text("Unproductive", color = Color.White)
-                }
+            }
+        }
+    }
+} 
+
+@Composable
+fun DatePickerField(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit) {
+    // Simple dropdown for last 14 days (for KMP compatibility)
+    var expanded by remember { mutableStateOf(false) }
+    val dateOptions = remember {
+        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        (0..13).map { daysAgo ->
+            currentDate.minus(DatePeriod(days = daysAgo))
+        }.reversed()
+    }
+    Box {
+        Button(
+            onClick = { expanded = true },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.buttonBackground()
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+        ) {
+            Text(
+                text = DateTimeUtils.formatDate(selectedDate),
+                color = MaterialTheme.colorScheme.buttonTextColor()
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            dateOptions.forEach { date ->
+                DropdownMenuItem(
+                    text = { Text(DateTimeUtils.formatDateWithYear(date)) },
+                    onClick = {
+                        onDateSelected(date)
+                        expanded = false
+                    }
+                )
             }
         }
     }
