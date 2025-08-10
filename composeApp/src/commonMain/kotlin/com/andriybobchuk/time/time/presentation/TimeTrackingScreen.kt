@@ -96,13 +96,6 @@ fun TimeTrackingScreen(
                 title = "Time Blocks",
                 customContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DateSelectorInTopBar(
-                            selectedDate = state.selectedDate,
-                            onDateSelected = { date ->
-                                viewModel.onAction(TimeTrackingAction.SelectDate(date))
-                            }
-                        )
-                        Spacer(Modifier.width(8.dp))
                         IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowAddSheet) }) {
                             Icon(
                                 modifier = Modifier.size(16.dp),
@@ -138,13 +131,25 @@ fun TimeTrackingScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Calendar view (scrollable)
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
+            Column {
+                // Week View
+                WeekView(
+                    selectedDate = state.selectedDate,
+                    onDateSelected = { date ->
+                        viewModel.onAction(TimeTrackingAction.SelectDate(date))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp, vertical = 2.dp)
+                )
+                
+                // Calendar view (scrollable)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
                 val sortedBlocks = state.timeBlocks.sortedBy { it.startTime }
                 
                 if (sortedBlocks.isNotEmpty()) {
@@ -279,7 +284,9 @@ fun TimeTrackingScreen(
                         }
                     }
                 }
+                }
             }
+            
             // Floating JobButtons at the bottom
             JobButtons(
                 jobs = state.jobs,
@@ -380,6 +387,75 @@ fun DateSelectorInTopBar(
                         expanded = false
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun WeekView(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Generate last 7 days
+    val dateOptions = remember {
+        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        (0..6).map { daysAgo ->
+            currentDate.minus(DatePeriod(days = daysAgo))
+        }.reversed()
+    }
+    
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        dateOptions.forEach { date ->
+            val dayName = DateTimeUtils.formatDayName(date)
+            val isSelected = date == selectedDate
+            val isToday = date == Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .pointerInput(date) { // Use date as key to avoid stale captures
+                        detectTapGestures(
+                            onTap = {
+                                onDateSelected(date)
+                            }
+                        )
+                    }
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = dayName,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.secondaryTextColor(),
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            color = when {
+                                isSelected -> MaterialTheme.colorScheme.buttonBackground()
+                                isToday -> MaterialTheme.colorScheme.buttonBackground().copy(alpha = 0.1f)
+                                else -> Color.Transparent
+                            },
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = date.dayOfMonth.toString(),
+                        fontSize = 14.sp,
+                        color = if (isSelected) MaterialTheme.colorScheme.buttonTextColor() else MaterialTheme.colorScheme.textColor(),
+                        fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
             }
         }
     }
