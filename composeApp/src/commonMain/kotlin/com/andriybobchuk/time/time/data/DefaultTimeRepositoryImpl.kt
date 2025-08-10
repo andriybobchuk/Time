@@ -56,12 +56,29 @@ class DefaultTimeRepositoryImpl(
         return TimeDataSource.jobs.find { it.id == id }
     }
 
+    // Helper function to filter out time blocks with non-existent jobs
+    private fun filterValidTimeBlocks(blocks: List<TimeBlock>): List<TimeBlock> {
+        return blocks.filter { block ->
+            getJobById(block.jobId) != null
+        }
+    }
+
+    // Helper function to safely get job or return fallback
+    private fun getJobByIdSafe(jobId: String): Job {
+        return getJobById(jobId) ?: Job(
+            id = jobId,
+            name = "Unknown Job",
+            color = 0xFF808080 // Gray color for unknown jobs
+        )
+    }
+
     override suspend fun getDailySummary(date: LocalDate): DailySummary {
-        val blocks = getTimeBlocksByDate(date).first()
+        val allBlocks = getTimeBlocksByDate(date).first()
+        val blocks = filterValidTimeBlocks(allBlocks)
         
         val jobBreakdown = blocks.groupBy { it.jobId }
             .mapValues { (jobId, blocks) ->
-                val job = getJobById(jobId)!!
+                val job = getJobByIdSafe(jobId)
                 val totalHours = blocks.sumOf { it.getDurationInHours() }
                 JobSummary(
                     jobId = jobId,
@@ -92,8 +109,9 @@ class DefaultTimeRepositoryImpl(
         // Treat weekStart as the END date (selected date or today)
         val endDate = weekStart
         val startDate = endDate.minus(kotlinx.datetime.DatePeriod(days = 6)) // last 7 days
-        val blocks = timeBlockDao.getByDateRange(startDate.toString(), endDate.toString()).first()
+        val allBlocks = timeBlockDao.getByDateRange(startDate.toString(), endDate.toString()).first()
             .map { it.toDomain() }
+        val blocks = filterValidTimeBlocks(allBlocks)
 
         val dailySummaries = mutableListOf<DailySummary>()
         for (i in 0 until 7) {
@@ -104,7 +122,7 @@ class DefaultTimeRepositoryImpl(
 
             val jobBreakdown = dailyBlocks.groupBy { it.jobId }
                 .mapValues { (jobId, blocks) ->
-                    val job = getJobById(jobId)!!
+                    val job = getJobByIdSafe(jobId)
                     val totalHours = blocks.sumOf { it.getDurationInHours() }
                     JobSummary(
                         jobId = jobId,
@@ -136,7 +154,7 @@ class DefaultTimeRepositoryImpl(
 
         val jobBreakdown = blocks.groupBy { it.jobId }
             .mapValues { (jobId, blocks) ->
-                val job = getJobById(jobId)!!
+                val job = getJobByIdSafe(jobId)
                 val jobTotalHours = blocks.sumOf { it.getDurationInHours() }
                 val jobAverageDailyHours = jobTotalHours / 7
                 JobAnalytics(
@@ -160,8 +178,9 @@ class DefaultTimeRepositoryImpl(
 
     override suspend fun getLast7DaysAnalytics(endDate: LocalDate): WeeklyAnalytics {
         val startDate = endDate.minus(kotlinx.datetime.DatePeriod(days = 6)) // last 7 days
-        val blocks = timeBlockDao.getByDateRange(startDate.toString(), endDate.toString()).first()
+        val allBlocks = timeBlockDao.getByDateRange(startDate.toString(), endDate.toString()).first()
             .map { it.toDomain() }
+        val blocks = filterValidTimeBlocks(allBlocks)
 
         val dailySummaries = mutableListOf<DailySummary>()
         for (i in 0 until 7) {
@@ -172,7 +191,7 @@ class DefaultTimeRepositoryImpl(
 
             val jobBreakdown = dailyBlocks.groupBy { it.jobId }
                 .mapValues { (jobId, blocks) ->
-                    val job = getJobById(jobId)!!
+                    val job = getJobByIdSafe(jobId)
                     val totalHours = blocks.sumOf { it.getDurationInHours() }
                     JobSummary(
                         jobId = jobId,
@@ -219,7 +238,7 @@ class DefaultTimeRepositoryImpl(
         // Job breakdown for pie chart (based on working days only for average calculation)
         val jobBreakdown = workingDayBlocks.groupBy { it.jobId }
             .mapValues { (jobId, blocks) ->
-                val job = getJobById(jobId)!!
+                val job = getJobByIdSafe(jobId)
                 val jobTotalHours = blocks.sumOf { it.getDurationInHours() }
                 val jobAverageDailyHours = if (workingDaysCount > 0) jobTotalHours / workingDaysCount else 0.0
                 JobAnalytics(

@@ -157,7 +157,7 @@ The Time app is the primary focus of this project, implementing comprehensive ti
   - `id`: String identifier
   - `name`: Display name
   - `color`: Long value for UI theming
-  - Currently hardcoded in `TimeDataSource` (Rivian, Plato, Business)
+  - Currently hardcoded in `TimeDataSource` (Rivian, Plato)
 
 - **DailySummary**: Aggregated daily analytics
   - `date`: Target date
