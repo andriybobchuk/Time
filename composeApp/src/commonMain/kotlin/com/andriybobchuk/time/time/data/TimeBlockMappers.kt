@@ -11,7 +11,8 @@ fun TimeBlockEntity.toDomain(): TimeBlock {
         startTime = LocalDateTime.parse(startTime),
         endTime = endTime?.let { LocalDateTime.parse(it) },
         duration = duration,
-        effectiveness = effectiveness?.let { com.andriybobchuk.time.time.domain.Effectiveness.valueOf(it) }
+        effectiveness = effectiveness?.let { com.andriybobchuk.time.time.domain.Effectiveness.valueOf(it) },
+        description = description
     )
 }
 
@@ -23,6 +24,7 @@ fun TimeBlock.toEntity(): TimeBlockEntity {
         startTime = startTime.toString(),
         endTime = endTime?.toString(),
         duration = duration,
-        effectiveness = effectiveness?.name
+        effectiveness = effectiveness?.name,
+        description = description
     )
 } 

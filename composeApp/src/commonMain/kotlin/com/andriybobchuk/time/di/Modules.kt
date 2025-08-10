@@ -4,6 +4,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.andriybobchuk.time.core.data.HttpClientFactory
 import com.andriybobchuk.time.core.data.database.AppDatabase
 import com.andriybobchuk.time.core.data.database.MooneyDatabaseFactory
+import com.andriybobchuk.time.core.data.database.MIGRATION_3_6
 import com.andriybobchuk.time.mooney.data.DefaultCoreRepositoryImpl
 import com.andriybobchuk.time.mooney.domain.CoreRepository
 import com.andriybobchuk.time.mooney.domain.usecase.*
@@ -32,6 +33,7 @@ val sharedModule = module {
     single {
         get<MooneyDatabaseFactory>().create()
             .setDriver(BundledSQLiteDriver())
+            .addMigrations(MIGRATION_3_6)
             .build()
     }
     single { get<AppDatabase>().accountDao }

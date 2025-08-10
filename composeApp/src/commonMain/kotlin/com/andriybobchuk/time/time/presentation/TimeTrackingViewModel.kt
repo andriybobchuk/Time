@@ -67,7 +67,7 @@ class TimeTrackingViewModel(
             is TimeTrackingAction.HideEditSheet -> hideEditSheet()
             is TimeTrackingAction.HideAddSheet -> hideAddSheet()
             is TimeTrackingAction.UpdateTimeBlock -> updateTimeBlock(action.timeBlock)
-            is TimeTrackingAction.AddTimeBlock -> addTimeBlock(action.jobId, action.startTime, action.endTime, action.effectiveness)
+            is TimeTrackingAction.AddTimeBlock -> addTimeBlock(action.jobId, action.startTime, action.endTime, action.effectiveness, action.description)
         }
     }
 
@@ -237,7 +237,7 @@ class TimeTrackingViewModel(
         }
     }
     
-    private fun addTimeBlock(jobId: String, startTime: kotlinx.datetime.LocalDateTime, endTime: kotlinx.datetime.LocalDateTime, effectiveness: com.andriybobchuk.time.time.domain.Effectiveness?) {
+    private fun addTimeBlock(jobId: String, startTime: kotlinx.datetime.LocalDateTime, endTime: kotlinx.datetime.LocalDateTime, effectiveness: com.andriybobchuk.time.time.domain.Effectiveness?, description: String?) {
         viewModelScope.launch {
             try {
                 val job = getJobsUseCase().find { it.id == jobId }
@@ -247,7 +247,8 @@ class TimeTrackingViewModel(
                         jobName = job.name,
                         startTime = startTime,
                         endTime = endTime,
-                        effectiveness = effectiveness
+                        effectiveness = effectiveness,
+                        description = description
                     )
                     upsertTimeBlockUseCase(timeBlock)
                     hideAddSheet()

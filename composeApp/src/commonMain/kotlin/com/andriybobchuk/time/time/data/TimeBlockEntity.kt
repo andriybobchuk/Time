@@ -11,5 +11,6 @@ data class TimeBlockEntity(
     val startTime: String, // ISO string format
     val endTime: String?, // ISO string format
     val duration: Long?, // in milliseconds
-    val effectiveness: String? = null // new field for persistence
+    val effectiveness: String? = null, // new field for persistence
+    val description: String? = null // description field for details
 ) 

@@ -19,7 +19,8 @@ data class TimeBlock(
     val startTime: LocalDateTime,
     val endTime: LocalDateTime? = null,
     val duration: Long? = null, // in milliseconds
-    val effectiveness: Effectiveness? = null // new field
+    val effectiveness: Effectiveness? = null, // new field
+    val description: String? = null // description field for details
 ) {
     fun isActive(): Boolean = endTime == null
     

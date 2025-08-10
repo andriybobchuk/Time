@@ -330,8 +330,8 @@ fun TimeTrackingScreen(
             onDismiss = {
                 viewModel.onAction(TimeTrackingAction.HideAddSheet)
             },
-            onSave = { jobId, startTime, endTime, effectiveness ->
-                viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime, effectiveness))
+            onSave = { jobId, startTime, endTime, effectiveness, description ->
+                viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime, effectiveness, description))
             }
         )
     }
@@ -457,6 +457,20 @@ fun TimeBlockCard(
                     )
                 }
             }
+            
+            // Show description if it exists
+            if (!timeBlock.description.isNullOrBlank()) {
+                Text(
+                    text = timeBlock.description,
+                    fontSize = 12.sp,
+                    color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme.secondaryTextColor(),
+                    textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp)
+                        .padding(bottom = 4.dp)
+                )
+            }
         }
     }
     
@@ -495,6 +509,7 @@ fun EditTimeBlockSheet(
     var endTimeText by remember { mutableStateOf(timeBlock.endTime?.let { DateTimeUtils.formatTime(it) } ?: "") }
     var selectedDate by remember { mutableStateOf(timeBlock.startTime.date) }
     var effectiveness by remember { mutableStateOf(timeBlock.effectiveness) }
+    var description by remember { mutableStateOf(timeBlock.description ?: "") }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.bottomSheetBackground(),
@@ -569,6 +584,17 @@ fun EditTimeBlockSheet(
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Description
+            Text("Description (Optional)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Add some details about this time block...") },
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Effectiveness
             Text("Effectiveness", fontWeight = FontWeight.Bold)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -610,7 +636,8 @@ fun EditTimeBlockSheet(
                                 jobName = jobs.find { it.id == selectedJobId }?.name ?: timeBlock.jobName,
                                 startTime = startTime,
                                 endTime = endTime,
-                                effectiveness = effectiveness
+                                effectiveness = effectiveness,
+                                description = description.takeIf { it.isNotBlank() }
                             )
                             onSave(updatedTimeBlock)
                         }
@@ -634,13 +661,14 @@ fun EditTimeBlockSheet(
 fun AddTimeBlockSheet(
     jobs: List<Job>,
     onDismiss: () -> Unit,
-    onSave: (String, kotlinx.datetime.LocalDateTime, kotlinx.datetime.LocalDateTime, Effectiveness?) -> Unit
+    onSave: (String, kotlinx.datetime.LocalDateTime, kotlinx.datetime.LocalDateTime, Effectiveness?, String?) -> Unit
 ) {
     var selectedJobId by remember { mutableStateOf("") }
     var startTimeText by remember { mutableStateOf("") }
     var endTimeText by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
     var effectiveness by remember { mutableStateOf<Effectiveness?>(null) }
+    var description by remember { mutableStateOf("") }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -716,6 +744,17 @@ fun AddTimeBlockSheet(
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Description
+            Text("Description (Optional)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.textColor())
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Add some details about this time block...") },
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Effectiveness
             Text("Effectiveness", fontWeight = FontWeight.Bold)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -750,7 +789,7 @@ fun AddTimeBlockSheet(
                         val endTime = parseTimeString(endTimeText, selectedDate)
                         
                         if (startTime != null && endTime != null && selectedJobId.isNotEmpty()) {
-                            onSave(selectedJobId, startTime, endTime, effectiveness)
+                            onSave(selectedJobId, startTime, endTime, effectiveness, description.takeIf { it.isNotBlank() })
                         }
                     },
                     modifier = Modifier.weight(1f)
