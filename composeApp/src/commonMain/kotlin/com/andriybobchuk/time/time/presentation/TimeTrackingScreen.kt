@@ -398,6 +398,7 @@ fun TimeBlockCard(
         job?.color?.let { Color(it) }
     }?:Color(0xFF808080)
     val isUnproductive = timeBlock.effectiveness == Effectiveness.Unproductive
+    val isLongTimeBlock = timeBlock.getDurationInHours() >= 1.0 // Show description for blocks 1 hour or longer
     var showContextMenu by remember { mutableStateOf(false) }
     Card(
         modifier = modifier
@@ -419,14 +420,17 @@ fun TimeBlockCard(
         ) else null,
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 4.dp, horizontal = 14.dp)
         ) {
-            Row {
+            // Main content row with job name, duration, and time
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row {
                     Text(
                         text = timeBlock.jobName,
@@ -445,7 +449,6 @@ fun TimeBlockCard(
                             .textColor()
                     )
                 }
-                Spacer(Modifier.weight(1f))
                 Row {
                     val end = timeBlock.endTime?.let { endTime ->
                         DateTimeUtils.formatTime(endTime)
@@ -460,17 +463,15 @@ fun TimeBlockCard(
                 }
             }
             
-            // Show description if it exists
-            if (!timeBlock.description.isNullOrBlank()) {
+            // Show description only for longer time blocks
+            if (isLongTimeBlock && !timeBlock.description.isNullOrBlank()) {
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = timeBlock.description,
                     fontSize = 12.sp,
                     color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme.secondaryTextColor(),
                     textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp)
-                        .padding(bottom = 4.dp)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
