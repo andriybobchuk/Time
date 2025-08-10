@@ -55,6 +55,7 @@ val sharedModule = module {
     singleOf(::GetJobsUseCase)
     singleOf(::GetDailySummaryUseCase)
     singleOf(::GetWeeklyAnalyticsUseCase)
+    singleOf(::GetLast7DaysAnalyticsUseCase)
     singleOf(::DeleteTimeBlockUseCase)
     singleOf(::UpsertTimeBlockUseCase)
 

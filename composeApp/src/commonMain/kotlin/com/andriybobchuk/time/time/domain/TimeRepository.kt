@@ -19,4 +19,5 @@ interface TimeRepository {
     // Analytics
     suspend fun getDailySummary(date: LocalDate): DailySummary
     suspend fun getWeeklyAnalytics(weekStart: LocalDate): WeeklyAnalytics
+    suspend fun getLast7DaysAnalytics(endDate: LocalDate): WeeklyAnalytics
 } 

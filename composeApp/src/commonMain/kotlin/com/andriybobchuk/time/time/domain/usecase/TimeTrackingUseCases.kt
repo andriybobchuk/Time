@@ -3,6 +3,7 @@ package com.andriybobchuk.time.time.domain.usecase
 import com.andriybobchuk.time.time.domain.Job
 import com.andriybobchuk.time.time.domain.TimeBlock
 import com.andriybobchuk.time.time.domain.TimeRepository
+import com.andriybobchuk.time.time.domain.WeeklyAnalytics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.datetime.Clock
@@ -95,6 +96,15 @@ class GetWeeklyAnalyticsUseCase(
     private val repository: TimeRepository
 ) {
     suspend operator fun invoke(weekStart: LocalDate) = repository.getWeeklyAnalytics(weekStart)
+}
+
+class GetLast7DaysAnalyticsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): WeeklyAnalytics {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getLast7DaysAnalytics(today)
+    }
 }
 
 class DeleteTimeBlockUseCase(

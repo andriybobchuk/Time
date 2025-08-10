@@ -23,7 +23,6 @@ data class TimeTrackingState(
 )
 
 data class AnalyticsState(
-    val selectedWeekStart: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
     val weeklyAnalytics: WeeklyAnalytics? = null,
     val isLoading: Boolean = false,
     val error: String? = null
@@ -42,8 +41,4 @@ sealed interface TimeTrackingAction {
     data class UpdateTimeBlock(val timeBlock: TimeBlock) : TimeTrackingAction
     data class AddTimeBlock(val jobId: String, val startTime: kotlinx.datetime.LocalDateTime, val endTime: kotlinx.datetime.LocalDateTime, val effectiveness: com.andriybobchuk.time.time.domain.Effectiveness? = null) : TimeTrackingAction
     data class StopTrackingWithEffectiveness(val effectiveness: com.andriybobchuk.time.time.domain.Effectiveness) : TimeTrackingAction
-}
-
-sealed interface AnalyticsAction {
-    data class SelectWeek(val weekStart: LocalDate) : AnalyticsAction
 } 
