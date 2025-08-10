@@ -419,7 +419,7 @@ fun WeekView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(6.dp))
                     .pointerInput(date) { // Use date as key to avoid stale captures
                         detectTapGestures(
                             onTap = {
@@ -427,7 +427,6 @@ fun WeekView(
                             }
                         )
                     }
-                    .padding(vertical = 8.dp)
             ) {
                 Text(
                     text = dayName,
@@ -438,15 +437,15 @@ fun WeekView(
                 Spacer(Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
                         .background(
                             color = when {
                                 isSelected -> MaterialTheme.colorScheme.buttonBackground()
-                                isToday -> MaterialTheme.colorScheme.buttonBackground().copy(alpha = 0.1f)
+                                isToday -> MaterialTheme.colorScheme.buttonBackground().copy(alpha = 0.15f)
                                 else -> Color.Transparent
                             },
-                            shape = CircleShape
-                        ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -900,7 +899,7 @@ private fun parseTimeString(timeString: String, date: kotlinx.datetime.LocalDate
 @Composable
 fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.cardBackground()),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.cardBackground()
         ),
