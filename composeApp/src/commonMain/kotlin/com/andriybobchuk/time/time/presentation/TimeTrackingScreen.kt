@@ -58,6 +58,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.andriybobchuk.time.time.domain.TimeBlock
@@ -98,7 +100,7 @@ fun TimeTrackingScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowAddSheet) }) {
                             Icon(
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(20.dp),
                                 painter = Icons.AddIcon(),
                                 contentDescription = "Add Time Block",
                                 tint = MaterialTheme.colorScheme.textColor()
@@ -670,7 +672,10 @@ fun EditTimeBlockSheet(
                 onValueChange = { description = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Add some details about this time block...") },
-                maxLines = 3
+                maxLines = 3,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -831,7 +836,10 @@ fun AddTimeBlockSheet(
                 onValueChange = { description = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Add some details about this time block...") },
-                maxLines = 3
+                maxLines = 3,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -899,11 +907,12 @@ private fun parseTimeString(timeString: String, date: kotlinx.datetime.LocalDate
 @Composable
 fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
     Card(
-        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.cardBackground()),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.cardBackground()
+            containerColor = Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier
@@ -952,17 +961,17 @@ fun JobButtons(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 5.dp)
+                .padding(vertical = 10.dp, horizontal = 5.dp),
+            horizontalAlignment = Alignment.End
         ) {
             Row(
-                modifier = Modifier.wrapContentWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 jobs.forEach { job ->
                     Button(
                         onClick = { onStartTracking(job.id) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(job.color)
+                            containerColor = Color(job.color).copy(alpha = 0.9f)
                         )
                     ) {
                         Row {
