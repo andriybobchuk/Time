@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -182,7 +183,7 @@ fun BarChart(
             (3 downTo 0).forEach { i ->
                 val value = (maxValue * i / 3.0)
                 Text(
-                    text = DateTimeUtils.formatDuration(value),
+                    text = if (value > 0) DateTimeUtils.formatFullHours(value) else "0",
                     fontSize = 8.sp,
                     modifier = Modifier.padding(end = 4.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
@@ -242,20 +243,28 @@ fun BarChart(
         }
     }
 
-    // X-axis labels (dates only) - positioned closer to bars
+    // X-axis labels (dates only) - positioned to match bar centers exactly
     Row(
         modifier = Modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .fillMaxWidth()
+            .height(20.dp)
+            .padding(horizontal = 0.dp) // No padding needed as we'll use the same logic as bars
     ) {
-        data.forEach { dayData ->
-                            Text(
+        data.forEachIndexed { index, dayData ->
+            // Each label takes the same width as each bar section (1/7 of total width)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
                     text = dayData.date,
                     fontSize = 10.sp,
-                    modifier = Modifier.weight(1f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    color = MaterialTheme.colorScheme.textColor()
+                    color = MaterialTheme.colorScheme.textColor(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
+            }
         }
     }
 

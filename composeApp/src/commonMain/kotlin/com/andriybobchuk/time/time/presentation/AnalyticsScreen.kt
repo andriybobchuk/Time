@@ -156,7 +156,7 @@ fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.Weekl
                 }
                 
                 DailyBarData(
-                    date = DateTimeUtils.formatDate(dailySummary.date),
+                    date = DateTimeUtils.formatDayName(dailySummary.date),
                     totalHours = dailySummary.totalHours,
                     jobData = jobData
                 )

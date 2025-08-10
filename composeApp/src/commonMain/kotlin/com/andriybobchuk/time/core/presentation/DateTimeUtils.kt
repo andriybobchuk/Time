@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.plus
+import kotlinx.datetime.DayOfWeek
 import kotlin.math.roundToInt
 
 object DateTimeUtils {
@@ -26,6 +27,19 @@ object DateTimeUtils {
         }
         
         return "$monthName ${date.dayOfMonth}"
+    }
+    
+    fun formatDayName(date: LocalDate): String {
+        return when (date.dayOfWeek) {
+            DayOfWeek.MONDAY -> "Mon"
+            DayOfWeek.TUESDAY -> "Tue"
+            DayOfWeek.WEDNESDAY -> "Wed"
+            DayOfWeek.THURSDAY -> "Thu"
+            DayOfWeek.FRIDAY -> "Fri"
+            DayOfWeek.SATURDAY -> "Sat"
+            DayOfWeek.SUNDAY -> "Sun"
+            else -> ""
+        }
     }
     
     fun formatDateWithYear(date: LocalDate): String {
