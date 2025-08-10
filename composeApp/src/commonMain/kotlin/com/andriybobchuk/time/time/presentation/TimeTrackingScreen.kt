@@ -193,7 +193,7 @@ fun TimeTrackingScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(1.dp)
-                                                    .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
+                                                    .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
                                             )
                                         }
                                     }
@@ -237,7 +237,7 @@ fun TimeTrackingScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
+                                            .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
                                     )
                                 }
                             }
@@ -442,7 +442,7 @@ fun WeekView(
                         .background(
                             color = when {
                                 isSelected -> MaterialTheme.colorScheme.buttonBackground()
-                                isToday -> MaterialTheme.colorScheme.buttonBackground().copy(alpha = 0.15f)
+                                isToday -> MaterialTheme.colorScheme.cardBackground()
                                 else -> Color.Transparent
                             },
                             shape = RoundedCornerShape(12.dp)
@@ -912,7 +912,7 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
             containerColor = Color.Transparent
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
     ) {
         Column(
             modifier = Modifier
@@ -972,6 +972,10 @@ fun JobButtons(
                         onClick = { onStartTracking(job.id) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(job.color).copy(alpha = 0.9f)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 3.dp,
+                            pressedElevation = 1.dp
                         )
                     ) {
                         Row {
@@ -1015,10 +1019,10 @@ fun EffectivenessCard(
             .fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.cardBackground()
+            containerColor = MaterialTheme.colorScheme.cardBackground().copy(alpha = 0.98f)
         ),
         //border = BorderStroke(1.dp, Color.Black),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
