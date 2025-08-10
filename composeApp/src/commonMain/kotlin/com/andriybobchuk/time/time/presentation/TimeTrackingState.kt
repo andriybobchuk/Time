@@ -32,6 +32,7 @@ data class AnalyticsState(
 sealed interface TimeTrackingAction {
     data class StartTracking(val jobId: String) : TimeTrackingAction
     data object StopTracking : TimeTrackingAction
+    data object CancelTracking : TimeTrackingAction
     data class SelectDate(val date: LocalDate) : TimeTrackingAction
     data class DeleteTimeBlock(val id: Int) : TimeTrackingAction
     data class EditTimeBlock(val timeBlock: TimeBlock) : TimeTrackingAction

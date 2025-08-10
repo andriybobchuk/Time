@@ -37,6 +37,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons as MaterialIcons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -295,6 +297,9 @@ fun TimeTrackingScreen(
                     timeBlock = state.activeTimeBlock,
                     onSelect = { effectiveness ->
                         viewModel.onAction(TimeTrackingAction.StopTrackingWithEffectiveness(effectiveness))
+                    },
+                    onCancel = {
+                        viewModel.onAction(TimeTrackingAction.CancelTracking)
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -873,6 +878,7 @@ val calendarConfig = CalendarViewConfig()
 fun EffectivenessCard(
     timeBlock: TimeBlock?,
     onSelect: (Effectiveness) -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (timeBlock == null) return
@@ -890,15 +896,32 @@ fun EffectivenessCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
            // horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Tracking ${timeBlock.jobName}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.textColor()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tracking ${timeBlock.jobName}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.textColor()
+                )
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                        contentDescription = "Cancel tracking",
+                        tint = MaterialTheme.colorScheme.secondaryTextColor(),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Complete this session as:",
+                text = "Complete this ${timeBlock.getFormattedDuration()} session as:",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.secondaryTextColor()
             )

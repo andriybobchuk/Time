@@ -58,6 +58,7 @@ class TimeTrackingViewModel(
         when (action) {
             is TimeTrackingAction.StartTracking -> startTracking(action.jobId)
             is TimeTrackingAction.StopTracking -> stopTracking()
+            is TimeTrackingAction.CancelTracking -> cancelTracking()
             is TimeTrackingAction.StopTrackingWithEffectiveness -> stopTrackingWithEffectiveness(action.effectiveness)
             is TimeTrackingAction.SelectDate -> selectDate(action.date)
             is TimeTrackingAction.DeleteTimeBlock -> deleteTimeBlock(action.id)
@@ -168,6 +169,28 @@ class TimeTrackingViewModel(
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    private fun cancelTracking() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            val activeBlock = state.value.activeTimeBlock
+            if (activeBlock == null) {
+                _state.update { it.copy(isLoading = false) }
+                return@launch
+            }
+            try {
+                deleteTimeBlockUseCase(activeBlock.id)
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        isLoading = false, 
+                        error = e.message ?: "Failed to cancel tracking"
+                    ) 
+                }
             }
         }
     }
