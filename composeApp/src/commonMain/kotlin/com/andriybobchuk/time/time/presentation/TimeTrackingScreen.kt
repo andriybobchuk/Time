@@ -51,6 +51,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,6 +95,24 @@ fun TimeTrackingScreen(
     bottomNavbar: @Composable () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Handle lifecycle changes for periodic refresh
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onScreenVisible()
+                Lifecycle.Event.ON_PAUSE -> viewModel.onScreenHidden()
+                else -> { /* Handle other events if needed */ }
+            }
+        }
+        
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
@@ -213,7 +236,8 @@ fun TimeTrackingScreen(
                                         onEdit = {
                                             viewModel.onAction(TimeTrackingAction.EditTimeBlock(timeBlock))
                                         },
-                                        modifier = Modifier.height(eventHeight)
+                                        modifier = Modifier.height(eventHeight),
+                                        durationTicker = state.durationTicker
                                     )
                                 }
                             }
@@ -314,7 +338,8 @@ fun TimeTrackingScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 10.dp, vertical = 10.dp)
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                    durationTicker = state.durationTicker
                 )
             }
         }
@@ -467,7 +492,8 @@ fun TimeBlockCard(
     timeBlock: TimeBlock,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    durationTicker: Long = 0L // For live duration updates of active blocks
 ) {
     // Get job color from TimeDataSource
     val jobColor = remember(timeBlock.jobId) {
@@ -519,7 +545,14 @@ fun TimeBlockCard(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = DateTimeUtils.formatDuration(timeBlock.getDurationInHours()),
+                        text = run {
+                            // For active blocks, read durationTicker to trigger recomposition
+                            if (timeBlock.endTime == null) {
+                                // Force recomposition by reading the ticker
+                                val tickerValue = durationTicker
+                            }
+                            DateTimeUtils.formatDuration(timeBlock.getDurationInHours())
+                        },
                         fontSize = 14.sp,
                         textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
                         color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
@@ -1011,7 +1044,8 @@ fun EffectivenessCard(
     timeBlock: TimeBlock?,
     onSelect: (Effectiveness) -> Unit,
     onCancel: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    durationTicker: Long = 0L // For live duration updates
 ) {
     if (timeBlock == null) return
     Card(
@@ -1053,7 +1087,11 @@ fun EffectivenessCard(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Complete this ${timeBlock.getFormattedDuration()} session as:",
+                text = run {
+                    // Read durationTicker to trigger recomposition every minute
+                    val tickerValue = durationTicker // Force recomposition by reading the ticker
+                    "Complete this ${timeBlock.getFormattedDuration()} session as:"
+                },
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.secondaryTextColor()
             )

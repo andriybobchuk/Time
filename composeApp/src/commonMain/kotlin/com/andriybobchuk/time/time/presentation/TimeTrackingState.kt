@@ -19,7 +19,8 @@ data class TimeTrackingState(
     val error: String? = null,
     val showEditSheet: Boolean = false,
     val editingTimeBlock: TimeBlock? = null,
-    val showAddSheet: Boolean = false
+    val showAddSheet: Boolean = false,
+    val durationTicker: Long = 0L // Updates every minute to trigger recomposition for active blocks
 )
 
 data class AnalyticsState(

@@ -19,6 +19,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -44,6 +47,9 @@ class TimeTrackingViewModel(
 
     private var observeTimeBlocksJob: Job? = null
     private var observeActiveBlockJob: Job? = null
+    private var periodicRefreshJob: Job? = null
+    private var durationTickerJob: Job? = null
+    private var isScreenVisible = false
 
     init {
         val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -93,6 +99,13 @@ class TimeTrackingViewModel(
         observeActiveBlockJob = getActiveTimeBlockUseCase()
             .onEach { activeBlock ->
                 _state.update { it.copy(activeTimeBlock = activeBlock) }
+                
+                // Start or stop duration ticker based on whether there's an active block
+                if (activeBlock != null && isScreenVisible) {
+                    startDurationTicker()
+                } else {
+                    stopDurationTicker()
+                }
             }
             .launchIn(viewModelScope)
     }
@@ -257,5 +270,92 @@ class TimeTrackingViewModel(
                 _state.update { it.copy(error = e.message) }
             }
         }
+    }
+    
+    // Lifecycle-aware periodic refresh methods
+    fun onScreenVisible() {
+        isScreenVisible = true
+        startPeriodicRefresh()
+        
+        // Start duration ticker if there's an active time block
+        if (state.value.activeTimeBlock != null) {
+            startDurationTicker()
+        }
+    }
+    
+    fun onScreenHidden() {
+        isScreenVisible = false
+        stopPeriodicRefresh()
+        stopDurationTicker()
+    }
+    
+    private fun startPeriodicRefresh() {
+        // Cancel any existing refresh job
+        periodicRefreshJob?.cancel()
+        
+        periodicRefreshJob = viewModelScope.launch {
+            while (isScreenVisible) {
+                delay(1.minutes) // Update every minute
+                if (isScreenVisible) {
+                    refreshData()
+                }
+            }
+        }
+    }
+    
+    private fun stopPeriodicRefresh() {
+        periodicRefreshJob?.cancel()
+        periodicRefreshJob = null
+    }
+    
+    private suspend fun refreshData() {
+        try {
+            // Refresh daily summary for current selected date
+            val currentSelectedDate = state.value.selectedDate
+            loadDailySummary(currentSelectedDate)
+            
+            // The time blocks and active time block will be automatically updated
+            // through their respective Flow observations, so no manual refresh needed
+            
+        } catch (e: Exception) {
+            // Silently handle refresh errors to avoid disrupting user experience
+            // The existing data will remain valid
+        }
+    }
+    
+    private fun startDurationTicker() {
+        // Cancel any existing ticker job
+        durationTickerJob?.cancel()
+        
+        durationTickerJob = viewModelScope.launch {
+            // Update immediately first
+            if (isScreenVisible && state.value.activeTimeBlock != null) {
+                val currentTime = Clock.System.now().toEpochMilliseconds()
+                _state.update { it.copy(durationTicker = currentTime) }
+            }
+            
+            // Then update every minute
+            while (isScreenVisible && state.value.activeTimeBlock != null) {
+                delay(1.minutes)
+                if (isScreenVisible && state.value.activeTimeBlock != null) {
+                    // Update ticker to trigger recomposition of active time block UI
+                    val currentTime = Clock.System.now().toEpochMilliseconds()
+                    _state.update { it.copy(durationTicker = currentTime) }
+                }
+            }
+        }
+    }
+    
+    private fun stopDurationTicker() {
+        durationTickerJob?.cancel()
+        durationTickerJob = null
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        stopPeriodicRefresh()
+        stopDurationTicker()
+        observeTimeBlocksJob?.cancel()
+        observeActiveBlockJob?.cancel()
     }
 } 
