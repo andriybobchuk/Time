@@ -69,6 +69,7 @@ val sharedModule = module {
     singleOf(::UpsertTimeBlockUseCase)
     singleOf(::GetStatusUpdatesUseCase)
     singleOf(::UpsertStatusUpdateUseCase)
+    singleOf(::HandleCrossMidnightBlocksUseCase)
 
     // ViewModels
     viewModelOf(::AccountViewModel)

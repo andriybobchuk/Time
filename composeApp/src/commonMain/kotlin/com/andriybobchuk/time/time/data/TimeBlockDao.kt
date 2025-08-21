@@ -21,6 +21,14 @@ interface TimeBlockDao {
 
     @Query("SELECT * FROM time_blocks WHERE date(startTime) = :date ORDER BY startTime DESC")
     fun getByDate(date: String): Flow<List<TimeBlockEntity>>
+    
+    @Query("""
+        SELECT * FROM time_blocks 
+        WHERE (date(startTime) = :date) 
+           OR (date(startTime) < :date AND (endTime IS NULL OR date(endTime) >= :date))
+        ORDER BY startTime DESC
+    """)
+    fun getByDateIncludingCrossDayBlocks(date: String): Flow<List<TimeBlockEntity>>
 
     @Query("SELECT * FROM time_blocks WHERE endTime IS NULL LIMIT 1")
     fun getActiveBlock(): Flow<TimeBlockEntity?>

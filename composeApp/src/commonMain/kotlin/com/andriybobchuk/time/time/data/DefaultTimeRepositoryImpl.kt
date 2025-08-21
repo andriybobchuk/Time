@@ -16,6 +16,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toInstant
 
 class DefaultTimeRepositoryImpl(
     private val timeBlockDao: TimeBlockDao,
@@ -46,10 +47,61 @@ class DefaultTimeRepositoryImpl(
         }
     }
 
+    override fun getTimeBlocksByDateIncludingCrossDay(date: LocalDate): Flow<List<TimeBlock>> {
+        return timeBlockDao.getByDateIncludingCrossDayBlocks(date.toString()).map { entities ->
+            entities.map { it.toDomain() }.map { timeBlock ->
+                // If this block crosses into the requested date, adjust it for display
+                adjustTimeBlockForDate(timeBlock, date)
+            }
+        }
+    }
+    
+    // Helper function to adjust time blocks that cross dates for proper display
+    private fun adjustTimeBlockForDate(timeBlock: TimeBlock, targetDate: LocalDate): TimeBlock {
+        val blockStartDate = timeBlock.startTime.date
+        val blockEndDate = timeBlock.endTime?.date
+        
+        // If block starts on target date, no adjustment needed
+        if (blockStartDate == targetDate) {
+            return timeBlock
+        }
+        
+        // If block started before target date but extends into it
+        if (blockStartDate < targetDate) {
+            val dayStart = kotlinx.datetime.LocalDateTime(targetDate, kotlinx.datetime.LocalTime(0, 0, 0))
+            
+            // If block is still active (no end time), show from start of target date
+            if (timeBlock.endTime == null) {
+                return timeBlock.copy(
+                    startTime = dayStart,
+                    duration = 0 // Will be calculated by UI for active blocks
+                )
+            }
+            
+            // If block ended on or after target date, show portion from start of target date
+            if (blockEndDate != null && blockEndDate >= targetDate) {
+                val startInstant = dayStart.toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+                val endInstant = timeBlock.endTime!!.toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+                val adjustedDuration = (endInstant.epochSeconds - startInstant.epochSeconds) * 1000L
+                
+                return timeBlock.copy(
+                    startTime = dayStart,
+                    duration = maxOf(0L, adjustedDuration)
+                )
+            }
+        }
+        
+        return timeBlock
+    }
+
     override fun getActiveTimeBlock(): Flow<TimeBlock?> {
         return timeBlockDao.getActiveBlock().map { entity ->
             entity?.toDomain()
         }
+    }
+
+    override suspend fun getActiveTimeBlockSync(): TimeBlock? {
+        return timeBlockDao.getActiveBlock().first()?.toDomain()
     }
 
     override fun getJobs(): List<Job> = TimeDataSource.jobs

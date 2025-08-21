@@ -66,7 +66,7 @@ class GetTimeBlocksUseCase(
     private val repository: TimeRepository
 ) {
     operator fun invoke(date: LocalDate): Flow<List<TimeBlock>> {
-        return repository.getTimeBlocksByDate(date)
+        return repository.getTimeBlocksByDateIncludingCrossDay(date)
     }
 }
 

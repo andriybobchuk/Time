@@ -13,6 +13,7 @@ import com.andriybobchuk.time.time.domain.usecase.StartTimeTrackingUseCase
 import com.andriybobchuk.time.time.domain.usecase.StopTimeTrackingUseCase
 import com.andriybobchuk.time.time.domain.usecase.UpsertStatusUpdateUseCase
 import com.andriybobchuk.time.time.domain.usecase.UpsertTimeBlockUseCase
+import com.andriybobchuk.time.time.domain.usecase.HandleCrossMidnightBlocksUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,7 +40,8 @@ class TimeTrackingViewModel(
     private val deleteTimeBlockUseCase: DeleteTimeBlockUseCase,
     private val upsertTimeBlockUseCase: UpsertTimeBlockUseCase,
     private val getStatusUpdatesUseCase: GetStatusUpdatesUseCase,
-    private val upsertStatusUpdateUseCase: UpsertStatusUpdateUseCase
+    private val upsertStatusUpdateUseCase: UpsertStatusUpdateUseCase,
+    private val handleCrossMidnightBlocksUseCase: HandleCrossMidnightBlocksUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TimeTrackingState())
@@ -59,6 +61,15 @@ class TimeTrackingViewModel(
     init {
         val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         _state.update { it.copy(selectedDate = currentDate) }
+        
+        // Handle any cross-midnight blocks on app start
+        viewModelScope.launch {
+            try {
+                handleCrossMidnightBlocksUseCase()
+            } catch (e: Exception) {
+                // Silently handle cross-midnight issues to not disrupt app startup
+            }
+        }
         
         loadJobs()
         observeTimeBlocks(currentDate)
@@ -222,6 +233,19 @@ class TimeTrackingViewModel(
 
     private fun selectDate(date: LocalDate) {
         _state.update { it.copy(selectedDate = date) }
+        
+        // Handle cross-midnight blocks when switching to today's date
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        if (date == today) {
+            viewModelScope.launch {
+                try {
+                    handleCrossMidnightBlocksUseCase()
+                } catch (e: Exception) {
+                    // Handle silently
+                }
+            }
+        }
+        
         observeTimeBlocks(date)
         observeStatusUpdates(date)
     }

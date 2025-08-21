@@ -10,7 +10,9 @@ interface TimeRepository {
     suspend fun getTimeBlockById(id: Int): TimeBlock?
     fun getAllTimeBlocks(): Flow<List<TimeBlock>>
     fun getTimeBlocksByDate(date: LocalDate): Flow<List<TimeBlock>>
+    fun getTimeBlocksByDateIncludingCrossDay(date: LocalDate): Flow<List<TimeBlock>>
     fun getActiveTimeBlock(): Flow<TimeBlock?>
+    suspend fun getActiveTimeBlockSync(): TimeBlock?
     
     // Jobs (hardcoded for now)
     fun getJobs(): List<Job>
