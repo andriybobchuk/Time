@@ -303,7 +303,8 @@ fun TimeTrackingScreen(
                         Spacer(Modifier.height(16.dp))
                         TotalSummaryCard(
                             summary = summary,
-                            statusUpdates = state.statusUpdates.associate { it.jobId to it.statusText }
+                            statusUpdates = state.statusUpdates.associate { it.jobId to it.statusText },
+                            jobs = state.jobs
                         )
                         Spacer(Modifier.height(200.dp))
                     }
@@ -972,7 +973,8 @@ private fun parseTimeString(timeString: String, date: kotlinx.datetime.LocalDate
 @Composable
 fun TotalSummaryCard(
     summary: com.andriybobchuk.time.time.domain.DailySummary,
-    statusUpdates: Map<String, String> = emptyMap() // jobId -> statusText
+    statusUpdates: Map<String, String> = emptyMap(), // jobId -> statusText
+    jobs: List<com.andriybobchuk.time.time.domain.Job> = emptyList()
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1000,51 +1002,59 @@ fun TotalSummaryCard(
                 val clipboardManager = LocalClipboardManager.current
                 val statusText = statusUpdates[jobSummary.jobId]
                 
+                // Find the job to get its color
+                val job = jobs.find { it.id == jobSummary.jobId }
+                val jobColor = job?.let { Color(it.color) } ?: MaterialTheme.colorScheme.primary
+                
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 6.dp)
                 ) {
-                    // Job summary row (time and percentage)
+                    // Job summary row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
-                            fontSize = 14.sp,
+                            fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.textColor(),
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = "${jobSummary.percentage}%",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.secondaryTextColor()
+                            text = "${jobSummary.percentage.toInt()}%",
+                            fontSize = 12.sp,
+                            color = jobColor,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                     
                     // Status update text (if available)
                     if (!statusText.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
                                     clipboardManager.setText(AnnotatedString(statusText))
                                 }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(12.dp)
                         ) {
                             Text(
                                 text = statusText,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.textColor().copy(alpha = 0.8f),
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.textColor(),
                                 style = androidx.compose.ui.text.TextStyle(
-                                    lineHeight = 16.sp
-                                )
+                                    lineHeight = 18.sp
+                                ),
+                                fontWeight = FontWeight.Normal
                             )
                         }
                     }
