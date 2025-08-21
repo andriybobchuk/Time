@@ -7,9 +7,11 @@ import com.andriybobchuk.time.time.domain.usecase.DeleteTimeBlockUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetActiveTimeBlockUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetDailySummaryUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetJobsUseCase
+import com.andriybobchuk.time.time.domain.usecase.GetStatusUpdatesUseCase
 import com.andriybobchuk.time.time.domain.usecase.GetTimeBlocksUseCase
 import com.andriybobchuk.time.time.domain.usecase.StartTimeTrackingUseCase
 import com.andriybobchuk.time.time.domain.usecase.StopTimeTrackingUseCase
+import com.andriybobchuk.time.time.domain.usecase.UpsertStatusUpdateUseCase
 import com.andriybobchuk.time.time.domain.usecase.UpsertTimeBlockUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,9 @@ class TimeTrackingViewModel(
     private val startTimeTrackingUseCase: StartTimeTrackingUseCase,
     private val stopTimeTrackingUseCase: StopTimeTrackingUseCase,
     private val deleteTimeBlockUseCase: DeleteTimeBlockUseCase,
-    private val upsertTimeBlockUseCase: UpsertTimeBlockUseCase
+    private val upsertTimeBlockUseCase: UpsertTimeBlockUseCase,
+    private val getStatusUpdatesUseCase: GetStatusUpdatesUseCase,
+    private val upsertStatusUpdateUseCase: UpsertStatusUpdateUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TimeTrackingState())
@@ -47,6 +51,7 @@ class TimeTrackingViewModel(
 
     private var observeTimeBlocksJob: Job? = null
     private var observeActiveBlockJob: Job? = null
+    private var observeStatusUpdatesJob: Job? = null
     private var periodicRefreshJob: Job? = null
     private var durationTickerJob: Job? = null
     private var isScreenVisible = false
@@ -58,6 +63,7 @@ class TimeTrackingViewModel(
         loadJobs()
         observeTimeBlocks(currentDate)
         observeActiveTimeBlock()
+        observeStatusUpdates(currentDate)
     }
 
     fun onAction(action: TimeTrackingAction) {
@@ -74,6 +80,12 @@ class TimeTrackingViewModel(
             is TimeTrackingAction.HideAddSheet -> hideAddSheet()
             is TimeTrackingAction.UpdateTimeBlock -> updateTimeBlock(action.timeBlock)
             is TimeTrackingAction.AddTimeBlock -> addTimeBlock(action.jobId, action.startTime, action.endTime, action.effectiveness, action.description)
+            
+            // Status Updates actions
+            is TimeTrackingAction.ShowStatusUpdatesSheet -> showStatusUpdatesSheet()
+            is TimeTrackingAction.HideStatusUpdatesSheet -> hideStatusUpdatesSheet()
+            is TimeTrackingAction.UpdateStatusText -> updateStatusText(action.jobId, action.text)
+            is TimeTrackingAction.SaveStatusUpdates -> saveStatusUpdates()
         }
     }
 
@@ -211,6 +223,7 @@ class TimeTrackingViewModel(
     private fun selectDate(date: LocalDate) {
         _state.update { it.copy(selectedDate = date) }
         observeTimeBlocks(date)
+        observeStatusUpdates(date)
     }
 
     private fun deleteTimeBlock(id: Int) {
@@ -266,6 +279,69 @@ class TimeTrackingViewModel(
                     upsertTimeBlockUseCase(timeBlock)
                     hideAddSheet()
                 }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+    
+    // Status Updates methods
+    private fun observeStatusUpdates(date: LocalDate) {
+        observeStatusUpdatesJob?.cancel()
+        
+        observeStatusUpdatesJob = getStatusUpdatesUseCase(date)
+            .onEach { statusUpdates ->
+                _state.update { 
+                    it.copy(
+                        statusUpdates = statusUpdates,
+                        statusUpdateTexts = statusUpdates.associate { update ->
+                            update.jobId to update.statusText
+                        }
+                    ) 
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+    
+    private fun showStatusUpdatesSheet() {
+        // Initialize status text map with current values for each job
+        val currentTexts = state.value.statusUpdateTexts.toMutableMap()
+        state.value.jobs.forEach { job ->
+            if (!currentTexts.containsKey(job.id)) {
+                currentTexts[job.id] = ""
+            }
+        }
+        _state.update { 
+            it.copy(
+                showStatusUpdatesSheet = true,
+                statusUpdateTexts = currentTexts
+            )
+        }
+    }
+    
+    private fun hideStatusUpdatesSheet() {
+        _state.update { it.copy(showStatusUpdatesSheet = false) }
+    }
+    
+    private fun updateStatusText(jobId: String, text: String) {
+        val updatedTexts = state.value.statusUpdateTexts.toMutableMap()
+        updatedTexts[jobId] = text
+        _state.update { it.copy(statusUpdateTexts = updatedTexts) }
+    }
+    
+    private fun saveStatusUpdates() {
+        viewModelScope.launch {
+            try {
+                val currentDate = state.value.selectedDate
+                val statusTexts = state.value.statusUpdateTexts
+                
+                statusTexts.forEach { (jobId, text) ->
+                    if (text.isNotBlank()) {
+                        upsertStatusUpdateUseCase(jobId, currentDate, text.trim())
+                    }
+                }
+                
+                hideStatusUpdatesSheet()
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.message) }
             }
@@ -357,5 +433,6 @@ class TimeTrackingViewModel(
         stopDurationTicker()
         observeTimeBlocksJob?.cancel()
         observeActiveBlockJob?.cancel()
+        observeStatusUpdatesJob?.cancel()
     }
 } 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -121,6 +124,14 @@ fun TimeTrackingScreen(
                 title = "Time Blocks",
                 customContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowStatusUpdatesSheet) }) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                painter = Icons.StatsIcon(),
+                                contentDescription = "Status Updates",
+                                tint = MaterialTheme.colorScheme.textColor()
+                            )
+                        }
                         IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowAddSheet) }) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
@@ -290,7 +301,10 @@ fun TimeTrackingScreen(
                             jobBreakdown = jobBreakdown
                         )
                         Spacer(Modifier.height(16.dp))
-                        TotalSummaryCard(summary = summary)
+                        TotalSummaryCard(
+                            summary = summary,
+                            statusUpdates = state.statusUpdates.associate { it.jobId to it.statusText }
+                        )
                         Spacer(Modifier.height(200.dp))
                     }
                 } else {
@@ -368,6 +382,24 @@ fun TimeTrackingScreen(
             },
             onSave = { jobId, startTime, endTime, effectiveness, description ->
                 viewModel.onAction(TimeTrackingAction.AddTimeBlock(jobId, startTime, endTime, effectiveness, description))
+            }
+        )
+    }
+    
+    // Status Updates Bottom Sheet
+    if (state.showStatusUpdatesSheet) {
+        StatusUpdatesSheet(
+            selectedDate = state.selectedDate,
+            jobs = state.jobs,
+            statusTexts = state.statusUpdateTexts,
+            onDismiss = {
+                viewModel.onAction(TimeTrackingAction.HideStatusUpdatesSheet)
+            },
+            onStatusTextChange = { jobId, text ->
+                viewModel.onAction(TimeTrackingAction.UpdateStatusText(jobId, text))
+            },
+            onSave = {
+                viewModel.onAction(TimeTrackingAction.SaveStatusUpdates)
             }
         )
     }
@@ -938,7 +970,10 @@ private fun parseTimeString(timeString: String, date: kotlinx.datetime.LocalDate
 }
 
 @Composable
-fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
+fun TotalSummaryCard(
+    summary: com.andriybobchuk.time.time.domain.DailySummary,
+    statusUpdates: Map<String, String> = emptyMap() // jobId -> statusText
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -962,20 +997,57 @@ fun TotalSummaryCard(summary: com.andriybobchuk.time.time.domain.DailySummary) {
             Spacer(modifier = Modifier.height(8.dp))
             
             summary.jobBreakdown.values.toList().forEach { jobSummary ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                val clipboardManager = LocalClipboardManager.current
+                val statusText = statusUpdates[jobSummary.jobId]
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
                 ) {
-                    Text(
-                        text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.textColor()
-                    )
-                    Text(
-                        text = "${jobSummary.percentage}%",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondaryTextColor()
-                    )
+                    // Job summary row (time and percentage)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${jobSummary.jobName}: ${DateTimeUtils.formatDuration(jobSummary.totalHours)}",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.textColor(),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "${jobSummary.percentage}%",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.secondaryTextColor()
+                        )
+                    }
+                    
+                    // Status update text (if available)
+                    if (!statusText.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    clipboardManager.setText(AnnotatedString(statusText))
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = statusText,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.textColor().copy(alpha = 0.8f),
+                                style = androidx.compose.ui.text.TextStyle(
+                                    lineHeight = 16.sp
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }

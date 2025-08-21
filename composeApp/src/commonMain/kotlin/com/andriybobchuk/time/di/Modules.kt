@@ -5,6 +5,7 @@ import com.andriybobchuk.time.core.data.HttpClientFactory
 import com.andriybobchuk.time.core.data.database.AppDatabase
 import com.andriybobchuk.time.core.data.database.MooneyDatabaseFactory
 import com.andriybobchuk.time.core.data.database.MIGRATION_3_6
+import com.andriybobchuk.time.core.data.database.MIGRATION_6_7
 import com.andriybobchuk.time.mooney.data.DefaultCoreRepositoryImpl
 import com.andriybobchuk.time.mooney.domain.CoreRepository
 import com.andriybobchuk.time.mooney.domain.usecase.*
@@ -28,17 +29,23 @@ val sharedModule = module {
     single { HttpClientFactory.create(get()) }
 
     singleOf(::DefaultCoreRepositoryImpl).bind<CoreRepository>()
-    singleOf(::DefaultTimeRepositoryImpl).bind<TimeRepository>()
+    single<TimeRepository> {
+        DefaultTimeRepositoryImpl(
+            timeBlockDao = get(),
+            statusUpdateDao = get()
+        )
+    }
 
     single {
         get<MooneyDatabaseFactory>().create()
             .setDriver(BundledSQLiteDriver())
-            .addMigrations(MIGRATION_3_6)
+            .addMigrations(MIGRATION_3_6, MIGRATION_6_7)
             .build()
     }
     single { get<AppDatabase>().accountDao }
     single { get<AppDatabase>().transactionDao }
     single { get<AppDatabase>().timeBlockDao }
+    single { get<AppDatabase>().statusUpdateDao }
 
     // Mooney Use Cases
     singleOf(::AddTransactionUseCase)
@@ -60,6 +67,8 @@ val sharedModule = module {
     singleOf(::GetLast7DaysAnalyticsUseCase)
     singleOf(::DeleteTimeBlockUseCase)
     singleOf(::UpsertTimeBlockUseCase)
+    singleOf(::GetStatusUpdatesUseCase)
+    singleOf(::UpsertStatusUpdateUseCase)
 
     // ViewModels
     viewModelOf(::AccountViewModel)

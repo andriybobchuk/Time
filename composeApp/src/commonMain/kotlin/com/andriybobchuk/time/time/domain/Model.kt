@@ -84,4 +84,13 @@ data class JobAnalytics(
     val totalHours: Double,
     val averageDailyHours: Double,
     val percentage: Double
+)
+
+data class StatusUpdate(
+    val id: String,
+    val jobId: String,
+    val jobName: String,
+    val date: LocalDate,
+    val statusText: String,
+    val lastUpdated: LocalDateTime
 ) 

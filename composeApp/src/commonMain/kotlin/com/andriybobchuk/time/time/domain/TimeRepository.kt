@@ -20,4 +20,10 @@ interface TimeRepository {
     suspend fun getDailySummary(date: LocalDate): DailySummary
     suspend fun getWeeklyAnalytics(weekStart: LocalDate): WeeklyAnalytics
     suspend fun getLast7DaysAnalytics(endDate: LocalDate): WeeklyAnalytics
+    
+    // Status Updates
+    suspend fun upsertStatusUpdate(statusUpdate: StatusUpdate)
+    fun getStatusUpdatesByDate(date: LocalDate): Flow<List<StatusUpdate>>
+    suspend fun getStatusUpdateByJobAndDate(jobId: String, date: LocalDate): StatusUpdate?
+    suspend fun deleteStatusUpdate(id: String)
 } 

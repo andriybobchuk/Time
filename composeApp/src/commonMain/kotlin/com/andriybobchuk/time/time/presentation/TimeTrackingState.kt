@@ -2,6 +2,7 @@ package com.andriybobchuk.time.time.presentation
 
 import com.andriybobchuk.time.time.domain.DailySummary
 import com.andriybobchuk.time.time.domain.Job
+import com.andriybobchuk.time.time.domain.StatusUpdate
 import com.andriybobchuk.time.time.domain.TimeBlock
 import com.andriybobchuk.time.time.domain.WeeklyAnalytics
 import kotlinx.datetime.Clock
@@ -20,7 +21,10 @@ data class TimeTrackingState(
     val showEditSheet: Boolean = false,
     val editingTimeBlock: TimeBlock? = null,
     val showAddSheet: Boolean = false,
-    val durationTicker: Long = 0L // Updates every minute to trigger recomposition for active blocks
+    val durationTicker: Long = 0L, // Updates every minute to trigger recomposition for active blocks
+    val statusUpdates: List<StatusUpdate> = emptyList(),
+    val showStatusUpdatesSheet: Boolean = false,
+    val statusUpdateTexts: Map<String, String> = emptyMap() // jobId -> statusText
 )
 
 data class AnalyticsState(
@@ -42,4 +46,10 @@ sealed interface TimeTrackingAction {
     data class UpdateTimeBlock(val timeBlock: TimeBlock) : TimeTrackingAction
     data class AddTimeBlock(val jobId: String, val startTime: kotlinx.datetime.LocalDateTime, val endTime: kotlinx.datetime.LocalDateTime, val effectiveness: com.andriybobchuk.time.time.domain.Effectiveness? = null, val description: String? = null) : TimeTrackingAction
     data class StopTrackingWithEffectiveness(val effectiveness: com.andriybobchuk.time.time.domain.Effectiveness) : TimeTrackingAction
+    
+    // Status Updates actions
+    data object ShowStatusUpdatesSheet : TimeTrackingAction
+    data object HideStatusUpdatesSheet : TimeTrackingAction
+    data class UpdateStatusText(val jobId: String, val text: String) : TimeTrackingAction
+    data object SaveStatusUpdates : TimeTrackingAction
 } 

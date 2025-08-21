@@ -4,6 +4,7 @@ import com.andriybobchuk.time.time.domain.DailySummary
 import com.andriybobchuk.time.time.domain.Job
 import com.andriybobchuk.time.time.domain.JobAnalytics
 import com.andriybobchuk.time.time.domain.JobSummary
+import com.andriybobchuk.time.time.domain.StatusUpdate
 import com.andriybobchuk.time.time.domain.TimeBlock
 import com.andriybobchuk.time.time.domain.TimeRepository
 import com.andriybobchuk.time.time.domain.WeeklyAnalytics
@@ -17,7 +18,8 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 
 class DefaultTimeRepositoryImpl(
-    private val timeBlockDao: TimeBlockDao
+    private val timeBlockDao: TimeBlockDao,
+    private val statusUpdateDao: StatusUpdateDao
 ) : TimeRepository {
 
     override suspend fun upsertTimeBlock(timeBlock: TimeBlock) {
@@ -258,5 +260,31 @@ class DefaultTimeRepositoryImpl(
             averageDailyHours = averageDailyHours, // Working days average for pie chart
             jobBreakdown = jobBreakdown
         )
+    }
+    
+    // Status Updates
+    override suspend fun upsertStatusUpdate(statusUpdate: StatusUpdate) {
+        statusUpdateDao.upsert(statusUpdate.toEntity())
+    }
+
+    override fun getStatusUpdatesByDate(date: LocalDate): Flow<List<StatusUpdate>> {
+        return statusUpdateDao.getByDate(date.toString()).map { entities ->
+            entities.map { entity ->
+                val job = getJobByIdSafe(entity.jobId)
+                entity.toDomain(job.name)
+            }
+        }
+    }
+
+    override suspend fun getStatusUpdateByJobAndDate(jobId: String, date: LocalDate): StatusUpdate? {
+        val entity = statusUpdateDao.getByJobAndDate(jobId, date.toString())
+        return entity?.let { 
+            val job = getJobByIdSafe(it.jobId)
+            it.toDomain(job.name)
+        }
+    }
+
+    override suspend fun deleteStatusUpdate(id: String) {
+        statusUpdateDao.delete(id)
     }
 } 
