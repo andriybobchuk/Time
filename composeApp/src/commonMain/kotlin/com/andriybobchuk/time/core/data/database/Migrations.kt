@@ -52,3 +52,14 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         """.trimIndent())
     }
 }
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        // Update effectiveness enum value from "Unproductive" to "Meetings"
+        connection.execSQL("""
+            UPDATE time_blocks 
+            SET effectiveness = 'Meetings' 
+            WHERE effectiveness = 'Unproductive'
+        """.trimIndent())
+    }
+}

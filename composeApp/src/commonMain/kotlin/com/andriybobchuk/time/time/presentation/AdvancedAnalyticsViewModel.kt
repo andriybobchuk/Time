@@ -138,7 +138,7 @@ class AdvancedAnalyticsViewModel(
                     },
                     effectivenessBreakdown = EffectivenessBreakdown(
                         productiveHours = selectedDay.totalHours * (selectedDay.effectivenessRate / 100.0),
-                        unproductiveHours = selectedDay.totalHours * (1.0 - selectedDay.effectivenessRate / 100.0),
+                        meetingHours = selectedDay.totalHours * (1.0 - selectedDay.effectivenessRate / 100.0),
                         productivePercentage = selectedDay.effectivenessRate,
                         averageSessionDuration = if (selectedDay.jobHours.isNotEmpty()) selectedDay.totalHours / selectedDay.jobHours.size else 0.0
                     )
@@ -175,7 +175,7 @@ class AdvancedAnalyticsViewModel(
                     },
                     effectivenessBreakdown = EffectivenessBreakdown(
                         productiveHours = selectedWeek.totalHours * (selectedWeek.effectivenessRate / 100.0),
-                        unproductiveHours = selectedWeek.totalHours * (1.0 - selectedWeek.effectivenessRate / 100.0),
+                        meetingHours = selectedWeek.totalHours * (1.0 - selectedWeek.effectivenessRate / 100.0),
                         productivePercentage = selectedWeek.effectivenessRate,
                         averageSessionDuration = if (selectedWeek.jobHours.isNotEmpty()) selectedWeek.totalHours / selectedWeek.jobHours.size else 0.0
                     )
@@ -212,7 +212,7 @@ class AdvancedAnalyticsViewModel(
                     },
                     effectivenessBreakdown = EffectivenessBreakdown(
                         productiveHours = selectedMonth.totalHours * (selectedMonth.effectivenessRate / 100.0),
-                        unproductiveHours = selectedMonth.totalHours * (1.0 - selectedMonth.effectivenessRate / 100.0),
+                        meetingHours = selectedMonth.totalHours * (1.0 - selectedMonth.effectivenessRate / 100.0),
                         productivePercentage = selectedMonth.effectivenessRate,
                         averageSessionDuration = if (selectedMonth.jobHours.isNotEmpty()) selectedMonth.totalHours / selectedMonth.jobHours.size else 0.0
                     )

@@ -9,7 +9,7 @@ import com.andriybobchuk.time.time.data.StatusUpdateDao
 import com.andriybobchuk.time.time.data.JobDao
 import com.andriybobchuk.time.time.data.JobEntity
 
-@Database(entities = [TransactionEntity::class, AccountEntity::class, TimeBlockEntity::class, com.andriybobchuk.time.time.data.StatusUpdateEntity::class, JobEntity::class], version = 8)
+@Database(entities = [TransactionEntity::class, AccountEntity::class, TimeBlockEntity::class, com.andriybobchuk.time.time.data.StatusUpdateEntity::class, JobEntity::class], version = 9)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao

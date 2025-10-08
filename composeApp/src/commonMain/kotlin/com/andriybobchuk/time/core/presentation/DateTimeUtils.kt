@@ -109,4 +109,24 @@ object DateTimeUtils {
         val weekEnd = weekStart.plus(kotlinx.datetime.DatePeriod(days = 6))
         return "${formatDate(weekStart)} - ${formatDate(weekEnd)}"
     }
+    
+    fun formatDateForTitle(date: LocalDate): String {
+        val dayName = formatDayName(date)
+        val monthName = when (date.month) {
+            Month.JANUARY -> "Jan"
+            Month.FEBRUARY -> "Feb"
+            Month.MARCH -> "Mar"
+            Month.APRIL -> "Apr"
+            Month.MAY -> "May"
+            Month.JUNE -> "Jun"
+            Month.JULY -> "Jul"
+            Month.AUGUST -> "Aug"
+            Month.SEPTEMBER -> "Sep"
+            Month.OCTOBER -> "Oct"
+            Month.NOVEMBER -> "Nov"
+            Month.DECEMBER -> "Dec"
+            else -> ""
+        }
+        return "$dayName, $monthName ${date.dayOfMonth}"
+    }
 } 

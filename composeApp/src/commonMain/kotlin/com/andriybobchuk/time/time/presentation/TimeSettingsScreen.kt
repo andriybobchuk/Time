@@ -2,9 +2,9 @@ package com.andriybobchuk.time.time.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -138,7 +138,24 @@ fun TimeSettingsScreen(
         state.selectedJobForDetails?.let { job ->
             JobDetailsSheet(
                 job = job,
-                onDismiss = { viewModel.onAction(TimeSettingsAction.HideJobDetails) }
+                onDismiss = { viewModel.onAction(TimeSettingsAction.HideJobDetails) },
+                onSave = { updatedJob ->
+                    // Handle main job setting if changed
+                    if (updatedJob.isMain && !job.isMain) {
+                        viewModel.onAction(TimeSettingsAction.SetMainJob(updatedJob.id))
+                    }
+                    
+                    // Save the updated job
+                    viewModel.onAction(TimeSettingsAction.SaveJob(
+                        id = updatedJob.id,
+                        name = updatedJob.name,
+                        color = updatedJob.color,
+                        isMain = updatedJob.isMain,
+                        hourlyRatePLN = updatedJob.hourlyRatePLN,
+                        isHidden = updatedJob.isHidden
+                    ))
+                },
+                onDelete = { viewModel.onAction(TimeSettingsAction.DeleteJob(job)) }
             )
         }
         
@@ -153,7 +170,6 @@ fun TimeSettingsScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun JobCard(
     job: Job,
@@ -163,36 +179,31 @@ fun JobCard(
     onSetMain: () -> Unit,
     onClick: () -> Unit
 ) {
-    var showContextMenu by remember { mutableStateOf(false) }
     
-    Box {
-        Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (!job.isHidden) {
-                    Modifier.border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                } else Modifier
-            )
-            .combinedClickable(
-                onClick = { onClick() },
-                onLongClick = { showContextMenu = true }
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.cardBackground()
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
+    Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .then(
+                    if (!job.isHidden) {
+                        Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    } else Modifier
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.cardBackground()
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             // Job color indicator
             Box(
                 modifier = Modifier
@@ -252,59 +263,6 @@ fun JobCard(
                 }
             }
         }
-    }
-        
-        // Context menu
-        DropdownMenu(
-            expanded = showContextMenu,
-            onDismissRequest = { showContextMenu = false }
-        ) {
-        DropdownMenuItem(
-            text = { Text("Edit") },
-            onClick = {
-                onEdit()
-                showContextMenu = false
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Edit, contentDescription = null)
-            }
-        )
-        DropdownMenuItem(
-            text = { Text("Delete") },
-            onClick = {
-                onDelete()
-                showContextMenu = false
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Delete, contentDescription = null)
-            }
-        )
-        DropdownMenuItem(
-            text = { Text(if (job.isHidden) "Show" else "Hide") },
-            onClick = {
-                onToggleVisibility()
-                showContextMenu = false
-            },
-            leadingIcon = {
-                Icon(
-                    if (job.isHidden) Icons.Default.Settings else Icons.Default.Close,
-                    contentDescription = null
-                )
-            }
-        )
-        if (!job.isMain) {
-            DropdownMenuItem(
-                text = { Text("Set as Main Job") },
-                onClick = {
-                    onSetMain()
-                    showContextMenu = false
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Star, contentDescription = null)
-                }
-            )
-        }
-    }
     }
 }
 
@@ -464,8 +422,27 @@ fun AddEditJobSheet(
 @Composable
 fun JobDetailsSheet(
     job: Job,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSave: (Job) -> Unit,
+    onDelete: () -> Unit
 ) {
+    var editedName by remember { mutableStateOf(job.name) }
+    var editedHourlyRate by remember { mutableStateOf(job.hourlyRatePLN?.toString() ?: "") }
+    var editedIsMain by remember { mutableStateOf(job.isMain) }
+    var editedIsHidden by remember { mutableStateOf(job.isHidden) }
+    var selectedColor by remember { mutableStateOf(job.color) }
+    
+    val colors = listOf(
+        0xFFFFC747, // Yellow
+        0xFF41D0FF, // Blue  
+        0xFF4CAF50, // Green
+        0xFFFF5722, // Deep Orange
+        0xFF9C27B0, // Purple
+        0xFFE91E63, // Pink
+        0xFF00BCD4, // Cyan
+        0xFFFFEB3B  // Amber
+    )
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss
     ) {
@@ -474,69 +451,148 @@ fun JobDetailsSheet(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Text(
+                text = "Edit Job",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 24.dp)
+            )
+            
+            // Name field
+            OutlinedTextField(
+                value = editedName,
+                onValueChange = { editedName = it },
+                label = { Text("Client Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Hourly rate field
+            OutlinedTextField(
+                value = editedHourlyRate,
+                onValueChange = { editedHourlyRate = it },
+                label = { Text("Hourly Rate (PLN)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Color selection
+            Text(
+                text = "Color",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(job.color))
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = job.name,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (job.isMain) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                color = Color(0xFF9C27B0),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "J1",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                    
-                    job.hourlyRatePLN?.let { rate ->
-                        Text(
-                            text = "${rate.toInt()} PLN/hour",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                colors.forEach { color ->
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(color))
+                            .clickable { selectedColor = color }
+                            .then(
+                                if (selectedColor == color)
+                                    Modifier.border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary,
+                                        CircleShape
+                                    )
+                                else Modifier
+                            )
+                    )
                 }
             }
             
-            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Total analysis placeholder
-            Text(
-                text = "Total Analysis",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
+            // Main job checkbox
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = editedIsMain,
+                    onCheckedChange = { editedIsMain = it }
+                )
+                Text(
+                    text = "Main Job (J1)",
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
             
-            // Placeholder stats
-            StatRow("Total Hours", "Coming soon")
-            StatRow("Total Earnings", "Coming soon")
-            StatRow("Average Daily Hours", "Coming soon")
-            StatRow("Effectiveness Rate", "Coming soon")
-            StatRow("Most Productive Time", "Coming soon")
+            // Show/Hide checkbox
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = !editedIsHidden,
+                    onCheckedChange = { editedIsHidden = !it }
+                )
+                Text(
+                    text = "Show in app",
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Delete button
+                OutlinedButton(
+                    onClick = {
+                        onDelete()
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                
+                // Save button
+                Button(
+                    onClick = {
+                        // Create updated job
+                        val updatedJob = job.copy(
+                            name = editedName,
+                            color = selectedColor,
+                            isMain = editedIsMain,
+                            hourlyRatePLN = editedHourlyRate.toDoubleOrNull(),
+                            isHidden = editedIsHidden
+                        )
+                        
+                        // Save the job
+                        onSave(updatedJob)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(2f),
+                    enabled = editedName.isNotBlank()
+                ) {
+                    Text("Save Changes")
+                }
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
         }

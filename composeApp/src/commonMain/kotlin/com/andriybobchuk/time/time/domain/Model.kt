@@ -9,7 +9,7 @@ import kotlinx.datetime.toInstant
 
 enum class Effectiveness {
     Productive,
-    Unproductive
+    Meetings
 }
 
 data class TimeBlock(
@@ -255,7 +255,7 @@ data class JobDetailBreakdown(
 
 data class EffectivenessBreakdown(
     val productiveHours: Double,
-    val unproductiveHours: Double,
+    val meetingHours: Double,
     val productivePercentage: Double,
     val averageSessionDuration: Double
 ) 

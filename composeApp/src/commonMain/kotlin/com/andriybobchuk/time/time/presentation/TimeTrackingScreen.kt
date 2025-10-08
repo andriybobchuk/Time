@@ -44,6 +44,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -77,7 +80,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.DayOfWeek
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.hours
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
@@ -204,7 +209,7 @@ fun TimeTrackingScreen(
     Scaffold(
         topBar = {
             Toolbars.Primary(
-                title = "Time Blocks",
+                title = DateTimeUtils.formatDateForTitle(state.selectedDate),
                 customContent = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowStatusUpdatesSheet) }) {
@@ -215,11 +220,10 @@ fun TimeTrackingScreen(
                                 tint = MaterialTheme.colorScheme.textColor()
                             )
                         }
-                        IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowAddSheet) }) {
+                        IconButton(onClick = { viewModel.onAction(TimeTrackingAction.ShowCalendarSheet) }) {
                             Icon(
-                                modifier = Modifier.size(20.dp),
-                                painter = Icons.AddIcon(),
-                                contentDescription = "Add Time Block",
+                                imageVector = MaterialIcons.Default.DateRange,
+                                contentDescription = "Select Date",
                                 tint = MaterialTheme.colorScheme.textColor()
                             )
                         }
@@ -307,6 +311,7 @@ fun TimeTrackingScreen(
                                     val eventHeight = maxOf(calendarConfig.hourHeight * heightMultiplier.toFloat(), calendarConfig.minEventHeight)
                                     TimeBlockCard(
                                         timeBlock = item.timeBlock,
+                                        jobs = state.jobs,
                                         onDelete = {
                                             viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(item.timeBlock.id))
                                         },
@@ -452,6 +457,20 @@ fun TimeTrackingScreen(
             },
             onSave = {
                 viewModel.onAction(TimeTrackingAction.SaveStatusUpdates)
+            }
+        )
+    }
+    
+    // Calendar Bottom Sheet
+    if (state.showCalendarSheet) {
+        CalendarSheet(
+            selectedDate = state.selectedDate,
+            onDismiss = {
+                viewModel.onAction(TimeTrackingAction.HideCalendarSheet)
+            },
+            onDateSelected = { date ->
+                viewModel.onAction(TimeTrackingAction.SelectDate(date))
+                viewModel.onAction(TimeTrackingAction.HideCalendarSheet)
             }
         )
     }
@@ -614,17 +633,18 @@ fun ContextSwitchMarginCard(
 @Composable
 fun TimeBlockCard(
     timeBlock: TimeBlock,
+    jobs: List<Job>,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier,
     durationTicker: Long = 0L // For live duration updates of active blocks
 ) {
-    // Get job color from TimeDataSource
-    val jobColor = remember(timeBlock.jobId) {
-        val job = TimeDataSource.jobs.find { it.id == timeBlock.jobId }
+    // Get job color from the actual jobs passed to the function
+    val jobColor = remember(timeBlock.jobId, jobs) {
+        val job = jobs.find { it.id == timeBlock.jobId }
         job?.color?.let { Color(it) }
-    }?:Color(0xFF808080)
-    val isUnproductive = timeBlock.effectiveness == Effectiveness.Unproductive
+    } ?: Color(0xFF808080)
+    val isMeeting = timeBlock.effectiveness == Effectiveness.Meetings
     val isLongTimeBlock = timeBlock.getDurationInHours() >= 1.0 // Show description for blocks 1 hour or longer
     var showContextMenu by remember { mutableStateOf(false) }
     Card(
@@ -638,10 +658,10 @@ fun TimeBlockCard(
                 )
             },
         colors = CardDefaults.cardColors(
-            containerColor = if (isUnproductive) Color.Transparent else jobColor.copy(alpha = 0.25f)
+            containerColor = if (isMeeting) Color.Transparent else jobColor.copy(alpha = 0.25f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = if (isUnproductive) BorderStroke(
+        border = if (isMeeting) BorderStroke(
             width = 1.dp,
             color = jobColor.copy(alpha = 0.25f),
         ) else null,
@@ -663,8 +683,8 @@ fun TimeBlockCard(
                         text = timeBlock.jobName,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
-                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                        textDecoration = if (isMeeting) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isMeeting) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
                             .textColor()
                     )
                     Spacer(Modifier.width(4.dp))
@@ -678,8 +698,8 @@ fun TimeBlockCard(
                             DateTimeUtils.formatDuration(timeBlock.getDurationInHours())
                         },
                         fontSize = 14.sp,
-                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
-                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                        textDecoration = if (isMeeting) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isMeeting) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
                             .textColor()
                     )
                 }
@@ -690,8 +710,8 @@ fun TimeBlockCard(
                     Text(
                         text = "${DateTimeUtils.formatTime(timeBlock.startTime)} - ${end?:"In Progress"}",
                         fontSize = 12.sp,
-                        textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
-                        color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
+                        textDecoration = if (isMeeting) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (isMeeting) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme
                             .textColor()
                     )
                 }
@@ -703,8 +723,8 @@ fun TimeBlockCard(
                 Text(
                     text = timeBlock.description,
                     fontSize = 12.sp,
-                    color = if (isUnproductive) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme.secondaryTextColor(),
-                    textDecoration = if (isUnproductive) TextDecoration.LineThrough else TextDecoration.None,
+                    color = if (isMeeting) MaterialTheme.colorScheme.textColor().copy(0.5f) else MaterialTheme.colorScheme.secondaryTextColor(),
+                    textDecoration = if (isMeeting) TextDecoration.LineThrough else TextDecoration.None,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -846,11 +866,11 @@ fun EditTimeBlockSheet(
                     )
                 ) { Text("Productive", color = Color.White) }
                 Button(
-                    onClick = { effectiveness = Effectiveness.Unproductive },
+                    onClick = { effectiveness = Effectiveness.Meetings },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (effectiveness == Effectiveness.Unproductive) Color(0xFFD32F2F) else Color.LightGray
+                        containerColor = if (effectiveness == Effectiveness.Meetings) Color(0xFFD32F2F) else Color.LightGray
                     )
-                ) { Text("Unproductive", color = Color.White) }
+                ) { Text("Meetings", color = Color.White) }
             }
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -1010,11 +1030,11 @@ fun AddTimeBlockSheet(
                     )
                 ) { Text("Productive", color = Color.White) }
                 Button(
-                    onClick = { effectiveness = Effectiveness.Unproductive },
+                    onClick = { effectiveness = Effectiveness.Meetings },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (effectiveness == Effectiveness.Unproductive) Color(0xFFD32F2F) else Color.LightGray
+                        containerColor = if (effectiveness == Effectiveness.Meetings) Color(0xFFD32F2F) else Color.LightGray
                     )
-                ) { Text("Unproductive", color = Color.White) }
+                ) { Text("Meetings", color = Color.White) }
             }
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -1275,11 +1295,11 @@ fun EffectivenessCard(
             ) {
                 Button(
                     modifier = Modifier.weight(1f),
-                    onClick = { onSelect(Effectiveness.Unproductive) },
+                    onClick = { onSelect(Effectiveness.Meetings) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                    // border = BorderStroke(1.dp, Color.Black)
                 ) {
-                    Text("Unproductive", color = Color.Black)
+                    Text("Meetings", color = Color.Black)
                 }
                 Button(
                     modifier = Modifier.weight(1f),
@@ -1332,3 +1352,177 @@ fun DatePickerField(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit
         }
     }
 } 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarSheet(
+    selectedDate: LocalDate,
+    onDismiss: () -> Unit,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    var currentMonth by remember { mutableStateOf(selectedDate) }
+    
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            // Header with month navigation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        currentMonth = currentMonth.minus(DatePeriod(months = 1))
+                    }
+                ) {
+                    Icon(
+                        imageVector = MaterialIcons.Default.KeyboardArrowLeft,
+                        contentDescription = "Previous Month"
+                    )
+                }
+                
+                Text(
+                    text = DateTimeUtils.formatDateWithYear(currentMonth),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                IconButton(
+                    onClick = {
+                        currentMonth = currentMonth.plus(DatePeriod(months = 1))
+                    }
+                ) {
+                    Icon(
+                        imageVector = MaterialIcons.Default.KeyboardArrowRight,
+                        contentDescription = "Next Month"
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Days of week header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
+                    Text(
+                        text = day,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Calendar grid
+            CalendarGrid(
+                currentMonth = currentMonth,
+                selectedDate = selectedDate,
+                onDateSelected = onDateSelected
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun CalendarGrid(
+    currentMonth: LocalDate,
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val firstDayOfMonth = LocalDate(currentMonth.year, currentMonth.month, 1)
+    
+    // Get first Monday to start the grid (could be from previous month)
+    val firstMondayOfGrid = firstDayOfMonth.minus(DatePeriod(days = (firstDayOfMonth.dayOfWeek.ordinal)))
+    
+    // Generate 6 weeks of dates (42 days)
+    val dates = (0 until 42).map { dayOffset ->
+        firstMondayOfGrid.plus(DatePeriod(days = dayOffset))
+    }
+    
+    // Group dates into weeks
+    val weeks = dates.chunked(7)
+    
+    Column {
+        weeks.forEach { week ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                week.forEach { date ->
+                    val isCurrentMonth = date.month == currentMonth.month && date.year == currentMonth.year
+                    val isSelected = date == selectedDate
+                    val isToday = date == Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clickable(enabled = isCurrentMonth) {
+                                if (isCurrentMonth) {
+                                    onDateSelected(date)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        } else if (isToday) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = date.dayOfMonth.toString(),
+                                color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

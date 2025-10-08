@@ -55,39 +55,87 @@ fun RedesignedAnalyticsScreen(
         },
         bottomBar = { bottomNavbar() }
     ) { paddingValues ->
-        if (state.isLoading && state.eightWeekTrend == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        when {
+            state.isLoading && state.eightWeekTrend == null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // Week-over-week trend panel
-                state.eightWeekTrend?.let { trend ->
+            state.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error loading analytics",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = state.error ?: "Unknown error",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Button(
+                            onClick = { viewModel.onAction(RedesignedAnalyticsAction.Refresh) },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+            state.eightWeekTrend != null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Week-over-week trend panel
                     WeekTrendPanel(
-                        trend = trend,
+                        trend = state.eightWeekTrend!!,
                         selectedWeekIndex = state.selectedWeekIndex,
                         onWeekSelected = { weekIndex ->
                             viewModel.onAction(RedesignedAnalyticsAction.SelectWeek(weekIndex))
                         }
                     )
+                    
+                    // Week details panel
+                    state.weekDetails?.let { details ->
+                        WeekDetailsPanel(
+                            details = details,
+                            jobs = state.eightWeekTrend?.jobs ?: emptyList()
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                
-                // Week details panel
-                state.weekDetails?.let { details ->
-                    WeekDetailsPanel(details = details)
+            }
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No analytics data available",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -323,7 +371,7 @@ fun TrendChart(
 }
 
 @Composable
-fun WeekDetailsPanel(details: WeekDetails) {
+fun WeekDetailsPanel(details: WeekDetails, jobs: List<Job>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Pie charts row
         Row(
@@ -367,11 +415,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                     ) {
                         SimplePieChart(
                             data = details.weekData.jobHours,
-                            jobs = details.weekData.jobHours.keys.mapNotNull { jobId ->
-                                // Get job details for colors
-                                // For now use placeholder colors
-                                jobId to getJobColor(jobId)
-                            }.toMap(),
+                            jobs = jobs.associateBy({ it.id }, { it.color }),
                             modifier = Modifier.size(100.dp)
                         )
                     }
@@ -379,6 +423,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                     // Legend
                     details.weekData.jobHours.forEach { (jobId, hours) ->
                         if (hours > 0) {
+                            val job = jobs.find { it.id == jobId }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(vertical = 2.dp)
@@ -386,11 +431,11 @@ fun WeekDetailsPanel(details: WeekDetails) {
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
-                                        .background(Color(getJobColor(jobId)), CircleShape)
+                                        .background(Color(job?.color ?: 0xFF808080), CircleShape)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "$jobId: ${formatHoursOnly(hours)}",
+                                    text = "${job?.name ?: jobId}: ${formatHoursOnly(hours)}",
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -437,7 +482,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                     ) {
                         UtilizationPieChart(
                             productiveTime = details.effectiveHours.values.sum(),
-                            unproductiveTime = details.weekData.totalHours - details.effectiveHours.values.sum(),
+                            meetingTime = details.weekData.totalHours - details.effectiveHours.values.sum(),
                             contextSwitchTime = details.contextSwitchHours,
                             modifier = Modifier.size(100.dp)
                         )
@@ -445,7 +490,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                     
                     // Legend
                     val productiveTime = details.effectiveHours.values.sum()
-                    val unproductiveTime = details.weekData.totalHours - productiveTime
+                    val meetingTime = details.weekData.totalHours - productiveTime
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -475,7 +520,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Unproductive: ${formatHoursOnly(unproductiveTime)}",
+                            text = "Meetings: ${formatHoursOnly(meetingTime)}",
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -522,6 +567,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                 // Job stats
                 details.averageDailyHours.forEach { (jobId, avgHours) ->
                     val effectiveness = details.effectivenessRate[jobId] ?: 0.0
+                    val job = jobs.find { it.id == jobId }
                     
                     Row(
                         modifier = Modifier
@@ -530,7 +576,7 @@ fun WeekDetailsPanel(details: WeekDetails) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = jobId, // This should be job name, but we'll fix that
+                            text = job?.name ?: jobId,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -627,12 +673,12 @@ fun SimplePieChart(
 @Composable
 fun UtilizationPieChart(
     productiveTime: Double,
-    unproductiveTime: Double,
+    meetingTime: Double,
     contextSwitchTime: Double,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val total = productiveTime + unproductiveTime + contextSwitchTime
+        val total = productiveTime + meetingTime + contextSwitchTime
         if (total == 0.0) return@Canvas
         
         val centerX = size.width / 2
@@ -640,7 +686,7 @@ fun UtilizationPieChart(
         val radius = minOf(centerX, centerY) * 0.8f
         
         val productiveAngle = (productiveTime / total * 360).toFloat()
-        val unproductiveAngle = (unproductiveTime / total * 360).toFloat()
+        val meetingAngle = (meetingTime / total * 360).toFloat()
         val contextAngle = (contextSwitchTime / total * 360).toFloat()
         
         // Draw productive time (green)
@@ -653,11 +699,11 @@ fun UtilizationPieChart(
             size = Size(radius * 2, radius * 2)
         )
         
-        // Draw unproductive time (orange)
+        // Draw meeting time (orange)
         drawArc(
             color = Color(0xFFFF9800),
             startAngle = -90f + productiveAngle,
-            sweepAngle = unproductiveAngle,
+            sweepAngle = meetingAngle,
             useCenter = true,
             topLeft = Offset(centerX - radius, centerY - radius),
             size = Size(radius * 2, radius * 2)
@@ -666,7 +712,7 @@ fun UtilizationPieChart(
         // Draw context switch time (gray)
         drawArc(
             color = Color.Gray.copy(alpha = 0.5f),
-            startAngle = -90f + productiveAngle + unproductiveAngle,
+            startAngle = -90f + productiveAngle + meetingAngle,
             sweepAngle = contextAngle,
             useCenter = true,
             topLeft = Offset(centerX - radius, centerY - radius),

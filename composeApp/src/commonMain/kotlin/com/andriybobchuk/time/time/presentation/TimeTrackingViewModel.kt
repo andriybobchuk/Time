@@ -97,6 +97,10 @@ class TimeTrackingViewModel(
             is TimeTrackingAction.HideStatusUpdatesSheet -> hideStatusUpdatesSheet()
             is TimeTrackingAction.UpdateStatusText -> updateStatusText(action.jobId, action.text)
             is TimeTrackingAction.SaveStatusUpdates -> saveStatusUpdates()
+            
+            // Calendar actions
+            is TimeTrackingAction.ShowCalendarSheet -> showCalendarSheet()
+            is TimeTrackingAction.HideCalendarSheet -> hideCalendarSheet()
         }
     }
 
@@ -277,6 +281,14 @@ class TimeTrackingViewModel(
     
     private fun hideAddSheet() {
         _state.update { it.copy(showAddSheet = false) }
+    }
+    
+    private fun showCalendarSheet() {
+        _state.update { it.copy(showCalendarSheet = true) }
+    }
+    
+    private fun hideCalendarSheet() {
+        _state.update { it.copy(showCalendarSheet = false) }
     }
     
     private fun updateTimeBlock(timeBlock: TimeBlock) {

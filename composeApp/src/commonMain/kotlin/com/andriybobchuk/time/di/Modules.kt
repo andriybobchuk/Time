@@ -7,6 +7,7 @@ import com.andriybobchuk.time.core.data.database.MooneyDatabaseFactory
 import com.andriybobchuk.time.core.data.database.MIGRATION_3_6
 import com.andriybobchuk.time.core.data.database.MIGRATION_6_7
 import com.andriybobchuk.time.core.data.database.MIGRATION_7_8
+import com.andriybobchuk.time.core.data.database.MIGRATION_8_9
 import com.andriybobchuk.time.mooney.data.DefaultCoreRepositoryImpl
 import com.andriybobchuk.time.mooney.domain.CoreRepository
 import com.andriybobchuk.time.mooney.domain.usecase.*
@@ -51,7 +52,7 @@ val sharedModule = module {
     single {
         get<MooneyDatabaseFactory>().create()
             .setDriver(BundledSQLiteDriver())
-            .addMigrations(MIGRATION_3_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_3_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
     }
     single { get<AppDatabase>().accountDao }

@@ -24,7 +24,8 @@ data class TimeTrackingState(
     val durationTicker: Long = 0L, // Updates every minute to trigger recomposition for active blocks
     val statusUpdates: List<StatusUpdate> = emptyList(),
     val showStatusUpdatesSheet: Boolean = false,
-    val statusUpdateTexts: Map<String, String> = emptyMap() // jobId -> statusText
+    val statusUpdateTexts: Map<String, String> = emptyMap(), // jobId -> statusText
+    val showCalendarSheet: Boolean = false
 )
 
 data class AdvancedAnalyticsState(
@@ -51,6 +52,7 @@ sealed interface AnalyticsAction {
 // Legacy AnalyticsState for backwards compatibility
 data class AnalyticsState(
     val weeklyAnalytics: WeeklyAnalytics? = null,
+    val jobs: List<Job> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -74,4 +76,8 @@ sealed interface TimeTrackingAction {
     data object HideStatusUpdatesSheet : TimeTrackingAction
     data class UpdateStatusText(val jobId: String, val text: String) : TimeTrackingAction
     data object SaveStatusUpdates : TimeTrackingAction
+    
+    // Calendar actions
+    data object ShowCalendarSheet : TimeTrackingAction
+    data object HideCalendarSheet : TimeTrackingAction
 } 

@@ -1,6 +1,7 @@
 package com.andriybobchuk.time.time.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -16,6 +18,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -29,7 +32,7 @@ import com.andriybobchuk.time.core.presentation.BarChartData
 import com.andriybobchuk.time.core.presentation.DailyBarData
 import com.andriybobchuk.time.core.presentation.Toolbars
 import com.andriybobchuk.time.core.presentation.cardBackground
-import com.andriybobchuk.time.time.data.TimeDataSource
+import com.andriybobchuk.time.time.domain.Job
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,21 +60,70 @@ fun AnalyticsScreen(
         ) {
 
             // Analytics content
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (state.weeklyAnalytics != null) {
+            if (state.isLoading) {
+                // Loading state
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.error != null) {
+                // Error state
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error loading analytics",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = state.error ?: "Unknown error",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            } else if (state.weeklyAnalytics != null) {
+                // Content state
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     item {
-                        JobBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!)
+                        JobBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!, jobs = state.jobs)
                     }
                     
                     item {
-                        DailyBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!)
+                        DailyBreakdownCard(weeklyAnalytics = state.weeklyAnalytics!!, jobs = state.jobs)
                     }
+                }
+            } else {
+                // Empty state
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No analytics data available",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -80,7 +132,7 @@ fun AnalyticsScreen(
 
 
 @Composable
-fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics) {
+fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics, jobs: List<Job>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -103,7 +155,7 @@ fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyA
             
             // Convert job analytics to pie chart data
             val pieChartData = weeklyAnalytics.jobBreakdown.values.map { jobAnalytics ->
-                val jobColor = TimeDataSource.jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                val jobColor = jobs.find { it.id == jobAnalytics.jobId }?.color?.let { Color(it) } ?: Color.Gray
                 PieChartData(
                     label = jobAnalytics.jobName,
                     value = jobAnalytics.totalHours,
@@ -122,7 +174,7 @@ fun JobBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyA
 }
 
 @Composable
-fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics) {
+fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.WeeklyAnalytics, jobs: List<Job>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -146,7 +198,7 @@ fun DailyBreakdownCard(weeklyAnalytics: com.andriybobchuk.time.time.domain.Weekl
             // Convert daily summaries to bar chart data
             val barChartData = weeklyAnalytics.dailySummaries.map { dailySummary ->
                 val jobData = dailySummary.jobBreakdown.values.map { jobSummary ->
-                    val jobColor = TimeDataSource.jobs.find { it.id == jobSummary.jobId }?.color?.let { Color(it) } ?: Color.Gray
+                    val jobColor = jobs.find { it.id == jobSummary.jobId }?.color?.let { Color(it) } ?: Color.Gray
                     BarChartData(
                         label = jobSummary.jobName,
                         value = jobSummary.totalHours,

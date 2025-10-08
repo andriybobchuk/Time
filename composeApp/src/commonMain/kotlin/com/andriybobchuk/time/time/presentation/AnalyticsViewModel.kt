@@ -3,6 +3,8 @@ package com.andriybobchuk.time.time.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.andriybobchuk.time.time.domain.usecase.GetLast7DaysAnalyticsUseCase
+import com.andriybobchuk.time.time.domain.usecase.GetJobsUseCase
+import com.andriybobchuk.time.time.domain.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -10,7 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AnalyticsViewModel(
-    private val getLast7DaysAnalyticsUseCase: GetLast7DaysAnalyticsUseCase
+    private val getLast7DaysAnalyticsUseCase: GetLast7DaysAnalyticsUseCase,
+    private val getJobsUseCase: GetJobsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AnalyticsState())
@@ -22,6 +25,7 @@ class AnalyticsViewModel(
 
     init {
         loadLast7DaysAnalytics()
+        loadJobs()
     }
 
     private fun loadLast7DaysAnalytics() {
@@ -43,6 +47,14 @@ class AnalyticsViewModel(
                         error = e.message ?: "Failed to load analytics"
                     ) 
                 }
+            }
+        }
+    }
+    
+    private fun loadJobs() {
+        viewModelScope.launch {
+            getJobsUseCase().collect { jobs ->
+                _state.update { it.copy(jobs = jobs) }
             }
         }
     }
