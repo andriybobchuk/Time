@@ -77,6 +77,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
+import kotlinx.datetime.LocalDateTime
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.hours
 import com.andriybobchuk.time.core.presentation.DateTimeUtils
 import com.andriybobchuk.time.core.presentation.Icons
 import com.andriybobchuk.time.core.presentation.Toolbars
@@ -90,6 +93,86 @@ import com.andriybobchuk.time.time.data.TimeDataSource
 import com.andriybobchuk.time.time.domain.Job
 import androidx.compose.ui.unit.Dp
 import com.andriybobchuk.time.time.domain.Effectiveness
+import kotlinx.datetime.toInstant
+
+// Sealed class to represent different types of items in the calendar view
+sealed class DisplayItem {
+    data class HourLabel(val hour: Int) : DisplayItem()
+    data class TimeBlockItem(val timeBlock: TimeBlock) : DisplayItem()
+    data class ContextSwitchMargin(
+        val startTime: LocalDateTime,
+        val endTime: LocalDateTime,
+        val duration: String
+    ) : DisplayItem()
+}
+
+// Function to generate all display items including context switch margins
+fun generateDisplayItems(sortedBlocks: List<TimeBlock>): List<DisplayItem> {
+    val items = mutableListOf<DisplayItem>()
+    val shownHourLabels = mutableSetOf<Int>()
+    
+    if (sortedBlocks.isEmpty()) return items
+    
+    val startHour = sortedBlocks.first().startTime.hour
+    val endHour = (sortedBlocks.last().endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
+    
+    // Process each time block and check for context switch margins
+    for (i in sortedBlocks.indices) {
+        val currentBlock = sortedBlocks[i]
+        val currentHour = currentBlock.startTime.hour
+        
+        // Add hour label if not shown yet for this hour
+        if (currentHour !in shownHourLabels) {
+            items.add(DisplayItem.HourLabel(currentHour))
+            shownHourLabels.add(currentHour)
+        }
+        
+        // Check for context switch margin before this block (except for first block)
+        if (i > 0) {
+            val previousBlock = sortedBlocks[i - 1]
+            val previousEndTime = previousBlock.endTime
+            
+            if (previousEndTime != null) {
+                val gapDuration = currentBlock.startTime.toInstant(TimeZone.currentSystemDefault()) - 
+                                previousEndTime.toInstant(TimeZone.currentSystemDefault())
+                
+                // Check if gap is between 5 minutes and 1 hour (context switch margin)
+                if (gapDuration >= 5.minutes && gapDuration < 1.hours) {
+                    val durationMinutes = (gapDuration.inWholeMinutes).toInt()
+                    val durationText = if (durationMinutes < 60) {
+                        "${durationMinutes}m"
+                    } else {
+                        val hours = durationMinutes / 60
+                        val minutes = durationMinutes % 60
+                        if (minutes > 0) "${hours}h ${minutes}m" else "${hours}h"
+                    }
+                    
+                    items.add(
+                        DisplayItem.ContextSwitchMargin(
+                            startTime = previousEndTime,
+                            endTime = currentBlock.startTime,
+                            duration = durationText
+                        )
+                    )
+                }
+            }
+        }
+        
+        // Add the time block
+        items.add(DisplayItem.TimeBlockItem(currentBlock))
+    }
+    
+    // Add hour labels for empty hours at the end
+    val lastBlockEndHour = (sortedBlocks.last().endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
+    for (hour in (lastBlockEndHour + 1)..endHour) {
+        if (hour !in shownHourLabels) {
+            items.add(DisplayItem.HourLabel(hour))
+            shownHourLabels.add(hour)
+        }
+    }
+    
+    return items
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,90 +272,58 @@ fun TimeTrackingScreen(
                 val sortedBlocks = state.timeBlocks.sortedBy { it.startTime }
                 
                 if (sortedBlocks.isNotEmpty()) {
-                    val startHour = sortedBlocks.first().startTime.hour
-                    val endHour = (sortedBlocks.last().endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
+                    // Generate all items to display (time blocks + context switch margins + hour labels)
+                    val displayItems = generateDisplayItems(sortedBlocks)
                     
-                                        // Show events and empty hours in chronological order
-                    val shownHourLabels = mutableSetOf<Int>()
-                    
-                    for (hour in startHour..endHour) {
-                        // Check if this hour is covered by any event's duration
-                        val isHourCovered = sortedBlocks.any { timeBlock ->
-                            val eventStartHour = timeBlock.startTime.hour
-                            val eventEndHour = (timeBlock.endTime ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())).hour
-                            hour in eventStartHour..eventEndHour
-                        }
-                        
-                        if (isHourCovered) {
-                            // This hour is covered by an event, show events that start in this hour
-                            val eventsThisHour = sortedBlocks.filter { it.startTime.hour == hour }
-                            eventsThisHour.forEach { timeBlock ->
-                                // Show hour label only once per hour
-                                if (hour !in shownHourLabels) {
-                                    item {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                               // .height(calendarConfig.hourHeight),
-                                                .height(20.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = "${hour}:00",
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.secondaryTextColor(),
-                                                modifier = Modifier.width(50.dp)
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(1.dp)
-                                                    .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
-                                            )
-                                        }
-                                    }
-                                    shownHourLabels.add(hour)
-                                }
-                                
-                                // Show the event
+                    displayItems.forEach { item ->
+                        when (item) {
+                            is DisplayItem.HourLabel -> {
                                 item {
-                                    val durationHours = timeBlock.getDurationInHours()
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(20.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${item.hour}:00",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.secondaryTextColor(),
+                                            modifier = Modifier.width(50.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(1.dp)
+                                                .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
+                                        )
+                                    }
+                                }
+                            }
+                            is DisplayItem.TimeBlockItem -> {
+                                item {
+                                    val durationHours = item.timeBlock.getDurationInHours()
                                     val heightMultiplier = maxOf(durationHours, 1.0)
                                     val eventHeight = maxOf(calendarConfig.hourHeight * heightMultiplier.toFloat(), calendarConfig.minEventHeight)
                                     TimeBlockCard(
-                                        timeBlock = timeBlock,
+                                        timeBlock = item.timeBlock,
                                         onDelete = {
-                                            viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(timeBlock.id))
+                                            viewModel.onAction(TimeTrackingAction.DeleteTimeBlock(item.timeBlock.id))
                                         },
                                         onEdit = {
-                                            viewModel.onAction(TimeTrackingAction.EditTimeBlock(timeBlock))
+                                            viewModel.onAction(TimeTrackingAction.EditTimeBlock(item.timeBlock))
                                         },
                                         modifier = Modifier.height(eventHeight),
                                         durationTicker = state.durationTicker
                                     )
                                 }
                             }
-                        } else {
-                            // This hour is truly empty (gap), show label
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                       // .height(calendarConfig.hourHeight),
-                                        .height(20.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "${hour}:00",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.secondaryTextColor(),
-                                        modifier = Modifier.width(50.dp)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.secondaryTextColor().copy(alpha = 0.1f))
+                            is DisplayItem.ContextSwitchMargin -> {
+                                item {
+                                    ContextSwitchMarginCard(
+                                        startTime = item.startTime,
+                                        endTime = item.endTime,
+                                        duration = item.duration
                                     )
                                 }
                             }
@@ -516,6 +567,46 @@ fun WeekView(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ContextSwitchMarginCard(
+    startTime: LocalDateTime,
+    endTime: LocalDateTime,
+    duration: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 50.dp)
+            .padding(vertical = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Gray.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Context Switch $duration",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Text(
+                text = "${DateTimeUtils.formatTime(startTime)} - ${DateTimeUtils.formatTime(endTime)}",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

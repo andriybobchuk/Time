@@ -10,10 +10,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.andriybobchuk.time.time.presentation.AnalyticsScreen as TimeAnalyticsScreen
-import com.andriybobchuk.time.time.presentation.AnalyticsViewModel as TimeAnalyticsViewModel
+import com.andriybobchuk.time.time.presentation.RedesignedAnalyticsScreen
+import com.andriybobchuk.time.time.presentation.RedesignedAnalyticsViewModel
 import com.andriybobchuk.time.time.presentation.TimeTrackingScreen
 import com.andriybobchuk.time.time.presentation.TimeTrackingViewModel
+import com.andriybobchuk.time.time.presentation.TimeSettingsScreen
+import com.andriybobchuk.time.time.presentation.TimeSettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -60,11 +62,18 @@ fun NavigationHost() {
                     bottomNavbar = { TimeBottomNavigationBar(navController, 0) }
                 )
             }
-            composable<Route.TimeAnalytics> {
-                val viewModel = koinViewModel<TimeAnalyticsViewModel>()
-                TimeAnalyticsScreen(
+            composable<Route.TimeSettings> {
+                val viewModel = koinViewModel<TimeSettingsViewModel>()
+                TimeSettingsScreen(
                     viewModel = viewModel,
                     bottomNavbar = { TimeBottomNavigationBar(navController, 1) }
+                )
+            }
+            composable<Route.TimeAnalytics> {
+                val viewModel = koinViewModel<RedesignedAnalyticsViewModel>()
+                RedesignedAnalyticsScreen(
+                    viewModel = viewModel,
+                    bottomNavbar = { TimeBottomNavigationBar(navController, 2) }
                 )
             }
         }

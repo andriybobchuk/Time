@@ -26,6 +26,9 @@ sealed interface Route {
     data object TimeAnalytics : Route
 
     @Serializable
+    data object TimeSettings : Route
+
+    @Serializable
     data object BookGraph : Route
 
     @Serializable

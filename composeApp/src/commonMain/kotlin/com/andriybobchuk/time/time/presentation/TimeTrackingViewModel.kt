@@ -101,8 +101,11 @@ class TimeTrackingViewModel(
     }
 
     private fun loadJobs() {
-        val jobs = getJobsUseCase()
-        _state.update { it.copy(jobs = jobs) }
+        viewModelScope.launch {
+            getJobsUseCase().collect { jobs ->
+                _state.update { it.copy(jobs = jobs) }
+            }
+        }
     }
 
     private fun observeTimeBlocks(date: LocalDate) {
@@ -290,7 +293,8 @@ class TimeTrackingViewModel(
     private fun addTimeBlock(jobId: String, startTime: kotlinx.datetime.LocalDateTime, endTime: kotlinx.datetime.LocalDateTime, effectiveness: com.andriybobchuk.time.time.domain.Effectiveness?, description: String?) {
         viewModelScope.launch {
             try {
-                val job = getJobsUseCase().find { it.id == jobId }
+                val jobs = _state.value.jobs
+                val job = jobs.find { it.id == jobId }
                 if (job != null) {
                     val timeBlock = TimeBlock(
                         jobId = jobId,

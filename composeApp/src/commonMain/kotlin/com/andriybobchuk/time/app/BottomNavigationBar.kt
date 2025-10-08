@@ -1,5 +1,6 @@
 package com.andriybobchuk.time.app
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.andriybobchuk.time.core.presentation.Icons
 
@@ -65,12 +67,14 @@ fun BottomNavigationBar(navController: NavHostController, selectedItemIndex: Int
 fun TimeBottomNavigationBar(navController: NavHostController, selectedItemIndex: Int) {
     val items = listOf(
         BottomNavigationItem("Blocks", Icons.TransactionsIcon()),
+        BottomNavigationItem("Jobs", Icons.AccountsIcon()),
         BottomNavigationItem("Analytics", Icons.StatsIcon()),
     )
 
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.onBackground
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.height(85.dp)
     ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -79,17 +83,23 @@ fun TimeBottomNavigationBar(navController: NavHostController, selectedItemIndex:
                     if (selectedItemIndex != index) {
                         when (index) {
                             0 -> navController.navigate(Route.TimeTracking) { popUpTo(Route.TimeGraph) }
-                            1 -> navController.navigate(Route.TimeAnalytics) { popUpTo(Route.TimeGraph) }
+                            1 -> navController.navigate(Route.TimeSettings) { popUpTo(Route.TimeGraph) }
+                            2 -> navController.navigate(Route.TimeAnalytics) { popUpTo(Route.TimeGraph) }
                         }
                     }
                 },
-                label = { Text(text = item.title) },
+                label = { 
+                    Text(
+                        text = item.title,
+                        fontSize = 11.sp
+                    ) 
+                },
                 alwaysShowLabel = true,
                 icon = {
                     Icon(
                         painter = item.icon,
                         contentDescription = item.title,
-                        modifier = Modifier.size(21.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 colors = NavigationBarItemColors(

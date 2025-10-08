@@ -14,14 +14,24 @@ interface TimeRepository {
     fun getActiveTimeBlock(): Flow<TimeBlock?>
     suspend fun getActiveTimeBlockSync(): TimeBlock?
     
-    // Jobs (hardcoded for now)
-    fun getJobs(): List<Job>
-    fun getJobById(id: String): Job?
+    // Jobs
+    fun getVisibleJobs(): Flow<List<Job>>
+    fun getAllJobs(): Flow<List<Job>>
+    suspend fun getJobById(id: String): Job?
+    suspend fun upsertJob(job: Job)
+    suspend fun deleteJob(job: Job)
+    suspend fun setMainJob(jobId: String)
     
     // Analytics
     suspend fun getDailySummary(date: LocalDate): DailySummary
     suspend fun getWeeklyAnalytics(weekStart: LocalDate): WeeklyAnalytics
     suspend fun getLast7DaysAnalytics(endDate: LocalDate): WeeklyAnalytics
+    
+    // Advanced Analytics
+    suspend fun getWeekAnalytics(endDate: LocalDate): WeekAnalytics
+    suspend fun getSixWeekAnalytics(endDate: LocalDate): SixWeekAnalytics
+    suspend fun getSixMonthAnalytics(endDate: LocalDate): SixMonthAnalytics
+    suspend fun getWorkPatternInsights(endDate: LocalDate): WorkPatternInsights
     
     // Status Updates
     suspend fun upsertStatusUpdate(statusUpdate: StatusUpdate)

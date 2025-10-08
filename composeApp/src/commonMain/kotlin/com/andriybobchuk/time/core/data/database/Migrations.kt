@@ -25,3 +25,30 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         """.trimIndent())
     }
 }
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        // Create jobs table
+        connection.execSQL("""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT NOT NULL PRIMARY KEY,
+                name TEXT NOT NULL,
+                color INTEGER NOT NULL,
+                isMain INTEGER NOT NULL DEFAULT 0,
+                hourlyRatePLN REAL,
+                isHidden INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+        
+        // Insert existing hardcoded jobs
+        connection.execSQL("""
+            INSERT INTO jobs (id, name, color, isMain, hourlyRatePLN, isHidden)
+            VALUES ('rivian', 'Rivian', 4294950727, 1, NULL, 0)
+        """.trimIndent())
+        
+        connection.execSQL("""
+            INSERT INTO jobs (id, name, color, isMain, hourlyRatePLN, isHidden)
+            VALUES ('plato', 'Plato', 4279168511, 0, NULL, 0)
+        """.trimIndent())
+    }
+}

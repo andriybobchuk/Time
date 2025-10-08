@@ -1,9 +1,6 @@
 package com.andriybobchuk.time.time.domain.usecase
 
-import com.andriybobchuk.time.time.domain.Job
-import com.andriybobchuk.time.time.domain.TimeBlock
-import com.andriybobchuk.time.time.domain.TimeRepository
-import com.andriybobchuk.time.time.domain.WeeklyAnalytics
+import com.andriybobchuk.time.time.domain.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.datetime.Clock
@@ -81,8 +78,8 @@ class GetActiveTimeBlockUseCase(
 class GetJobsUseCase(
     private val repository: TimeRepository
 ) {
-    operator fun invoke(): List<Job> {
-        return repository.getJobs()
+    operator fun invoke(): Flow<List<Job>> {
+        return repository.getVisibleJobs()
     }
 }
 
@@ -120,5 +117,60 @@ class UpsertTimeBlockUseCase(
 ) {
     suspend operator fun invoke(timeBlock: TimeBlock) {
         repository.upsertTimeBlock(timeBlock)
+    }
+}
+
+// Advanced Analytics Use Cases
+class GetWeekAnalyticsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): WeekAnalytics {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getWeekAnalytics(today)
+    }
+}
+
+class GetSixWeekAnalyticsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): SixWeekAnalytics {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getSixWeekAnalytics(today)
+    }
+}
+
+class GetSixMonthAnalyticsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): SixMonthAnalytics {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getSixMonthAnalytics(today)
+    }
+}
+
+class GetWorkPatternInsightsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): WorkPatternInsights {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getWorkPatternInsights(today)
+    }
+}
+
+class GetAdvancedAnalyticsUseCase(
+    private val repository: TimeRepository
+) {
+    suspend operator fun invoke(): AdvancedAnalytics {
+        val weekAnalytics = repository.getWeekAnalytics(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+        val sixWeekAnalytics = repository.getSixWeekAnalytics(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+        val sixMonthAnalytics = repository.getSixMonthAnalytics(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+        val workPatternInsights = repository.getWorkPatternInsights(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+        
+        return AdvancedAnalytics(
+            weekAnalytics = weekAnalytics,
+            sixWeekAnalytics = sixWeekAnalytics,
+            sixMonthAnalytics = sixMonthAnalytics,
+            workPatternInsights = workPatternInsights
+        )
     }
 } 

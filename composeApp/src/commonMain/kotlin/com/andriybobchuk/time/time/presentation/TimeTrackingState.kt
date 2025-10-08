@@ -4,7 +4,7 @@ import com.andriybobchuk.time.time.domain.DailySummary
 import com.andriybobchuk.time.time.domain.Job
 import com.andriybobchuk.time.time.domain.StatusUpdate
 import com.andriybobchuk.time.time.domain.TimeBlock
-import com.andriybobchuk.time.time.domain.WeeklyAnalytics
+import com.andriybobchuk.time.time.domain.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -27,6 +27,28 @@ data class TimeTrackingState(
     val statusUpdateTexts: Map<String, String> = emptyMap() // jobId -> statusText
 )
 
+data class AdvancedAnalyticsState(
+    val selectedPeriod: AnalyticsPeriod = AnalyticsPeriod.WEEK,
+    val weekAnalytics: WeekAnalytics? = null,
+    val sixWeekAnalytics: SixWeekAnalytics? = null,
+    val sixMonthAnalytics: SixMonthAnalytics? = null,
+    val workPatternInsights: WorkPatternInsights? = null,
+    val selectedPeriodDetails: PeriodDetails? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+// Analytics actions
+sealed interface AnalyticsAction {
+    data class SelectPeriod(val period: AnalyticsPeriod) : AnalyticsAction
+    data class SelectDateForDetails(val date: kotlinx.datetime.LocalDate) : AnalyticsAction
+    data class SelectWeekForDetails(val weekNumber: Int) : AnalyticsAction
+    data class SelectMonthForDetails(val monthName: String) : AnalyticsAction
+    data object ClearSelection : AnalyticsAction
+    data object Refresh : AnalyticsAction
+}
+
+// Legacy AnalyticsState for backwards compatibility
 data class AnalyticsState(
     val weeklyAnalytics: WeeklyAnalytics? = null,
     val isLoading: Boolean = false,
